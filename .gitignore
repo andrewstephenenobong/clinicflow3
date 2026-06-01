@@ -1,3 +1,21 @@
-node_modules
-dist
+# Dependencies (handled per-subfolder too, double-safety)
+node_modules/
+
+# Build outputs
+dist/
+build/
+
+# Environment files
 .env
+.env.local
+.env.*.local
+
+# OS / editor noise
+.DS_Store
+Thumbs.db
+.vscode/*
+!.vscode/settings.json
+
+# Logs
+*.log
+npm-debug.log*
