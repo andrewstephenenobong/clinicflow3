@@ -9,22 +9,8 @@ function bedStyles(status: Bed["status"]) {
 }
 
 export function BedsPage() {
-  const { beds, setBeds } = useOutletContext<ClinicContext>();
+  const { beds, toggleBedStatus } = useOutletContext<ClinicContext>();
 
-  // Toggle a single bed's status. In OCCUPIED→AVAILABLE we also clear the patient.
-  const toggleBed = (id: string) => {
-    setBeds((current) =>
-      current.map((b) => {
-        if (b.id !== id) return b;
-        if (b.status === "AVAILABLE") {
-          return { ...b, status: "OCCUPIED", patientName: "New patient", patientId: `p${Date.now()}` };
-        }
-        return { ...b, status: "AVAILABLE", patientName: undefined, patientId: undefined };
-      })
-    );
-  };
-
-  // Group beds by ward for a clearer layout
   const byWard = beds.reduce<Record<string, Bed[]>>((acc, b) => {
     (acc[b.ward] ||= []).push(b);
     return acc;
@@ -44,7 +30,6 @@ export function BedsPage() {
         </div>
       </div>
 
-      {/* Stat cards */}
       <div className="grid grid-cols-3 gap-3 mb-6">
         <div className="bg-white border border-slate-200 rounded-lg p-4">
           <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Available</p>
@@ -60,7 +45,6 @@ export function BedsPage() {
         </div>
       </div>
 
-      {/* Bed grid grouped by ward */}
       <div className="space-y-6">
         {Object.entries(byWard).map(([ward, wardBeds]) => (
           <section key={ward}>
@@ -71,7 +55,7 @@ export function BedsPage() {
               {wardBeds.map((bed) => (
                 <button
                   key={bed.id}
-                  onClick={() => toggleBed(bed.id)}
+                  onClick={() => toggleBedStatus(bed.id)}
                   className={`p-4 rounded-lg border-2 transition-colors text-left ${bedStyles(bed.status)}`}
                 >
                   <div className="flex items-start justify-between">
@@ -99,8 +83,9 @@ export function BedsPage() {
       </div>
 
       <p className="mt-6 text-xs text-slate-400 text-center">
-        Click any bed to toggle status. In Phase 2 you'll assign specific patients from the queue.
+        Click any bed to toggle status. Manage your bed layout in <strong>Settings → Beds</strong>.
       </p>
     </div>
   );
 }
+
