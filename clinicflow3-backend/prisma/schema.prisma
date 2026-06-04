@@ -3,5 +3,174 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum Role {
+  ADMIN
+  DOCTOR
+  RECEPTIONIST
+  SECURITY_OFFICER
+}
+
+enum Triage {
+  EMERGENCY
+  URGENT
+  ROUTINE
+}
+
+enum VisitStatus {
+  WAITING
+  CALLED
+  SEEN
+}
+
+enum BedStatus {
+  AVAILABLE
+  OCCUPIED
+}
+
+enum SubscriptionPlan {
+  STARTER
+  GROWTH
+  PRO
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+}
+
+model Clinic {
+  id                   String           @id @default(uuid(7))
+  name                 String
+  address              String?
+  phone                String?
+  email                String?
+  plan                 SubscriptionPlan @default(STARTER)
+  subscriptionStatus   String?
+  verificationPin      String?
+  securityContactPhone String?
+  createdAt            DateTime         @default(now())
+  updatedAt            DateTime         @updatedAt
+  users                User[]
+  patients             Patient[]
+  visits               Visit[]
+  beds                 Bed[]
+  auditLogs            AuditLog[]
+}
+
+model User {
+  id           String     @id @default(uuid(7))
+  clinicId     String
+  name         String
+  email        String     @unique
+  passwordHash String
+  role         Role       @default(RECEPTIONIST)
+  status       UserStatus @default(ACTIVE)
+  totpSecret   String?
+  faceConsent  Boolean    @default(false)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  clinic       Clinic     @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  seenVisits   Visit[]    @relation("SeenByUser")
+  auditLogs    AuditLog[]
+  devices      Device[]
+  @@index([clinicId])
+}
+
+model Patient {
+  id                String   @id @default(uuid(7))
+  clinicId          String
+  name              String
+  age               Int
+  gender            String
+  phone             String?
+  address           String?
+  nextOfKin         String?
+  bloodGroup        String?
+  allergies         String?
+  chronicConditions String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  clinic            Clinic   @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  visits            Visit[]
+  beds              Bed[]
+  @@index([clinicId])
+  @@index([clinicId, name])
+}
+
+model Visit {
+  id           String      @id @default(uuid(7))
+  patientId    String
+  clinicId     String
+  reason       String
+  triage       Triage      @default(ROUTINE)
+  status       VisitStatus @default(WAITING)
+  vitalsBp     String?
+  vitalsTemp   Float?
+  vitalsWeight Float?
+  diagnosis    String?
+  prescription String?
+  notes        String?
+  seenByUserId String?
+  checkedInAt  DateTime    @default(now())
+  calledAt     DateTime?
+  seenAt       DateTime?
+  patient      Patient     @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  clinic       Clinic      @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  seenBy       User?       @relation("SeenByUser", fields: [seenByUserId], references: [id], onDelete: SetNull)
+  @@index([clinicId, status])
+  @@index([clinicId, checkedInAt])
+  @@index([patientId])
+}
+
+model Bed {
+  id        String    @id @default(uuid(7))
+  clinicId  String
+  bedNumber String
+  ward      String
+  status    BedStatus @default(AVAILABLE)
+  patientId String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  clinic    Clinic    @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  patient   Patient?  @relation(fields: [patientId], references: [id], onDelete: SetNull)
+  @@unique([clinicId, bedNumber])
+  @@index([clinicId])
+  @@index([clinicId, ward])
+}
+
+model AuditLog {
+  id                String   @id @default(uuid(7))
+  clinicId          String
+  userId            String?
+  action            String
+  entityType        String
+  entityId          String?
+  ipAddress         String?
+  deviceFingerprint String?
+  metadata          Json?
+  createdAt         DateTime @default(now())
+  clinic            Clinic   @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  user              User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  @@index([clinicId, createdAt])
+  @@index([clinicId, userId])
+  @@index([clinicId, entityType, entityId])
+}
+
+model Device {
+  id          String   @id @default(uuid(7))
+  userId      String
+  fingerprint String
+  lastSeenIp  String?
+  userAgent   String?
+  trusted     Boolean  @default(false)
+  firstSeenAt DateTime @default(now())
+  lastSeenAt  DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@unique([userId, fingerprint])
+  @@index([userId])
 }
