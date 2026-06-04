@@ -1,0 +1,130 @@
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
+
+export function LoginPage() {
+  const { login } = useAuth();
+  const navigate = useNavigate();
+
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setError("");
+
+    // Basic validation
+    if (!email.trim() || !password.trim()) {
+      setError("Email and password are required.");
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    // TEMPORARY — simulates a successful login with a mock admin user
+    // Session 2 replaces this block with: POST /api/auth/login
+    try {
+      await new Promise((res) => setTimeout(res, 800)); // fake network delay
+
+      login({
+        id: "mock-user-1",
+        name: "Andrew Stephen",
+        email: email,
+        role: "ADMIN",
+        clinicId: "mock-clinic-1",
+      });
+
+      navigate("/queue", { replace: true });
+    } catch {
+      setError("Login failed. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
+      <div className="w-full max-w-md">
+
+        {/* Logo / Brand */}
+        <div className="text-center mb-8">
+          <h1 className="text-2xl font-bold text-blue-600">ClinicFlow</h1>
+          <p className="text-sm text-gray-500 mt-1">by Kairos Labs</p>
+        </div>
+
+        {/* Card */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
+          <h2 className="text-xl font-semibold text-gray-900 mb-1">
+            Sign in to your clinic
+          </h2>
+          <p className="text-sm text-gray-500 mb-6">
+            Enter your staff credentials to continue.
+          </p>
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Email */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Email address
+              </label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@clinic.com"
+                disabled={isSubmitting}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm
+                           focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
+                           disabled:bg-gray-50 disabled:text-gray-400"
+              />
+            </div>
+
+            {/* Password */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Password
+              </label>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                disabled={isSubmitting}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm
+                           focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
+                           disabled:bg-gray-50 disabled:text-gray-400"
+              />
+            </div>
+
+            {/* Error message */}
+            {error && (
+              <p className="text-sm text-red-600 bg-red-50 border border-red-200
+                            rounded-lg px-3 py-2">
+                {error}
+              </p>
+            )}
+
+            {/* Submit */}
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400
+                         text-white font-medium py-2.5 rounded-lg text-sm
+                         transition-colors duration-150"
+            >
+              {isSubmitting ? "Signing in..." : "Sign in"}
+            </button>
+          </form>
+        </div>
+
+        {/* Footer */}
+        <p className="text-center text-xs text-gray-400 mt-6">
+          ClinicFlow v1.0 — Built with purpose. Channeled from pain.
+        </p>
+
+      </div>
+    </div>
+  );
+}

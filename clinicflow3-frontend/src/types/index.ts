@@ -25,3 +25,12 @@ export interface Clinic {
   phone: string;
   email: string;
 }
+export type Role = "ADMIN" | "DOCTOR" | "RECEPTIONIST";
+
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  role: Role;
+  clinicId: string;
+}
