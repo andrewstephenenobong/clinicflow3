@@ -5,6 +5,7 @@ import cookieParser from "cookie-parser";
 import authRoutes from "./routes/auth.routes";
 import queueRoutes from "./routes/queue.routes";
 import bedRoutes from "./routes/bed.routes";
+import patientRoutes from "./routes/patient.routes";
 
 dotenv.config();
 
@@ -26,7 +27,7 @@ app.get("/api/health", (_req, res) => {
 app.use("/api/auth", authRoutes);
 app.use("/api/queue", queueRoutes);
 app.use("/api/beds", bedRoutes);
-
+app.use("/api/patients", patientRoutes);
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => {
   console.log(`ClinicFlow backend running on http://localhost:${PORT}`);

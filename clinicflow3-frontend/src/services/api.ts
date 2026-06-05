@@ -1,10 +1,5 @@
-// Base URL — in development this points to our local backend
-// In production this will be the Render URL via an environment variable
 const BASE_URL = import.meta.env.VITE_API_URL ?? "http://localhost:4000";
 
-// All fetch calls go through this helper.
-// credentials: "include" is critical — it tells the browser to send
-// the httpOnly cookie on every request (D5)
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const res = await fetch(`${BASE_URL}${path}`, {
     ...options,
@@ -38,6 +33,55 @@ export const authApi = {
     request<{ message: string }>("/api/auth/logout", { method: "POST" }),
 };
 
+// ── Queue ──
+export const queueApi = {
+  getToday: () =>
+    request<{ visits: ApiVisit[] }>("/api/queue/today"),
+
+  checkIn: (patientId: string, reason: string, triage: string) =>
+    request<{ visit: ApiVisit }>("/api/queue/checkin", {
+      method: "POST",
+      body: JSON.stringify({ patientId, reason, triage }),
+    }),
+
+  call: (visitId: string) =>
+    request<{ visit: ApiVisit }>(`/api/queue/${visitId}/call`, {
+      method: "PATCH",
+    }),
+
+  markSeen: (visitId: string, notes?: string) =>
+    request<{ visit: ApiVisit }>(`/api/queue/${visitId}/seen`, {
+      method: "PATCH",
+      body: JSON.stringify({ notes }),
+    }),
+};
+
+// ── Beds ──
+export const bedApi = {
+  getAll: () =>
+    request<{ beds: ApiBed[] }>("/api/beds"),
+
+  update: (bedId: string, status: string, patientId?: string) =>
+    request<{ bed: ApiBed }>(`/api/beds/${bedId}`, {
+      method: "PATCH",
+      body: JSON.stringify({ status, patientId }),
+    }),
+};
+// ── Patients ──
+export const patientApi = {
+  getAll: () =>
+    request<{ patients: ApiPatient[] }>("/api/patients"),
+
+  getOne: (patientId: string) =>
+    request<{ patient: ApiPatient & { visits: ApiVisit[] } }>(`/api/patients/${patientId}`),
+
+  create: (name: string, age: number, gender: string, phone?: string) =>
+    request<{ patient: ApiPatient }>("/api/patients", {
+      method: "POST",
+      body: JSON.stringify({ name, age, gender, phone }),
+    }),
+};
+
 // ── Shared API response types ──
 export interface ApiUser {
   id: string;
@@ -50,4 +94,36 @@ export interface ApiUser {
 export interface ApiClinic {
   id: string;
   name: string;
+}
+
+export interface ApiPatient {
+  id: string;
+  name: string;
+  age: number;
+  gender: string;
+  phone: string | null;
+}
+
+export interface ApiVisit {
+  id: string;
+  patientId: string;
+  clinicId: string;
+  reason: string;
+  triage: "EMERGENCY" | "URGENT" | "ROUTINE";
+  status: "WAITING" | "CALLED" | "SEEN";
+  notes: string | null;
+  checkedInAt: string;
+  calledAt: string | null;
+  seenAt: string | null;
+  patient: ApiPatient;
+}
+
+export interface ApiBed {
+  id: string;
+  clinicId: string;
+  bedNumber: string;
+  ward: string;
+  status: "AVAILABLE" | "OCCUPIED";
+  patientId: string | null;
+  patient: { id: string; name: string } | null;
 }

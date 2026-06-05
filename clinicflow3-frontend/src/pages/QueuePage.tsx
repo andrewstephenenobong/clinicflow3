@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useOutletContext } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import { Badge } from "../components/ui/Badge";
+import { queueApi } from "../services/api";
 import type { Triage, Visit, VisitStatus } from "../types";
 import type { ClinicContext } from "../components/layout/AppShell";
 
@@ -23,26 +25,36 @@ function formatTime(iso: string) {
 }
 
 export function QueuePage() {
-  // Pull the shared state from AppShell instead of using local state
-  const { visits, setVisits } = useOutletContext<ClinicContext>();
+  const { visits, isLoadingQueue } = useOutletContext<ClinicContext>();
+  const queryClient = useQueryClient();
 
   const [showCheckIn, setShowCheckIn] = useState(false);
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
 
-  const callVisit = (id: string) => {
-    setVisits((current) =>
-      current.map((v) => (v.id === id ? { ...v, status: "CALLED" } : v))
-    );
+  // Call patient — hits real API, then refreshes queue
+  const callVisit = async (id: string) => {
+    setActionLoading(id);
+    try {
+      await queueApi.call(id);
+      queryClient.invalidateQueries({ queryKey: ["queue", "today"] });
+    } catch (err) {
+      console.error("Failed to call patient:", err);
+    } finally {
+      setActionLoading(null);
+    }
   };
 
-  const markSeen = (id: string) => {
-    setVisits((current) =>
-      current.map((v) => (v.id === id ? { ...v, status: "SEEN" } : v))
-    );
-  };
-
-  const addVisit = (newVisit: Visit) => {
-    setVisits((current) => [...current, newVisit]);
-    setShowCheckIn(false);
+  // Mark seen — hits real API, then refreshes queue
+  const markSeen = async (id: string) => {
+    setActionLoading(id);
+    try {
+      await queueApi.markSeen(id);
+      queryClient.invalidateQueries({ queryKey: ["queue", "today"] });
+    } catch (err) {
+      console.error("Failed to mark seen:", err);
+    } finally {
+      setActionLoading(null);
+    }
   };
 
   const waiting = visits
@@ -53,6 +65,16 @@ export function QueuePage() {
     });
 
   const called = visits.filter((v) => v.status === "CALLED");
+
+  if (isLoadingQueue) {
+    return (
+      <div className="max-w-5xl mx-auto">
+        <div className="flex items-center justify-center py-20 text-sm text-slate-400">
+          Loading queue...
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-5xl mx-auto">
@@ -111,9 +133,10 @@ export function QueuePage() {
                   </span>
                   <button
                     onClick={() => callVisit(visit.id)}
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-md text-xs font-semibold"
+                    disabled={actionLoading === visit.id}
+                    className="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white px-3 py-1.5 rounded-md text-xs font-semibold"
                   >
-                    Call
+                    {actionLoading === visit.id ? "..." : "Call"}
                   </button>
                 </div>
               </li>
@@ -140,9 +163,10 @@ export function QueuePage() {
                   <Badge variant={statusVariant(visit.status)}>{visit.status}</Badge>
                   <button
                     onClick={() => markSeen(visit.id)}
-                    className="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-md text-xs font-semibold"
+                    disabled={actionLoading === visit.id}
+                    className="bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-400 text-white px-3 py-1.5 rounded-md text-xs font-semibold"
                   >
-                    Mark seen
+                    {actionLoading === visit.id ? "..." : "Mark seen"}
                   </button>
                 </div>
               </li>
@@ -152,48 +176,59 @@ export function QueuePage() {
       )}
 
       {showCheckIn && (
-        <CheckInDialog onClose={() => setShowCheckIn(false)} onSubmit={addVisit} />
+        <CheckInDialog
+          onClose={() => setShowCheckIn(false)}
+          onSuccess={() => {
+            setShowCheckIn(false);
+            queryClient.invalidateQueries({ queryKey: ["queue", "today"] });
+          }}
+        />
       )}
     </div>
   );
 }
 
-// ============================================================================
-// CheckInDialog (unchanged from before)
-// ============================================================================
+// ── CheckInDialog ──────────────────────────────────────────────────────────
 
 interface CheckInDialogProps {
   onClose: () => void;
-  onSubmit: (visit: Visit) => void;
+  onSuccess: () => void;
 }
 
-function CheckInDialog({ onClose, onSubmit }: CheckInDialogProps) {
+function CheckInDialog({ onClose, onSuccess }: CheckInDialogProps) {
   const [name, setName] = useState("");
   const [age, setAge] = useState("");
   const [gender, setGender] = useState<"M" | "F">("F");
   const [reason, setReason] = useState("");
   const [triage, setTriage] = useState<Triage>("ROUTINE");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState("");
 
   const canSubmit = name.trim() && age.trim() && reason.trim();
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!canSubmit) return;
-    const newId = `v${Date.now()}`;
-    const newVisit: Visit = {
-      id: newId,
-      patient: {
-        id: `p${Date.now()}`,
-        name: name.trim(),
-        age: Number(age),
-        gender,
-        phone: "",
-      },
-      reason: reason.trim(),
-      triage,
-      status: "WAITING",
-      checkedInAt: new Date().toISOString(),
-    };
-    onSubmit(newVisit);
+    setIsSubmitting(true);
+    setError("");
+
+    try {
+      // Step 1 — create the patient
+      const { patientApi } = await import("../services/api");
+      const { patient } = await patientApi.create(
+        name.trim(),
+        Number(age),
+        gender
+      );
+
+      // Step 2 — check them in to the queue
+      await queueApi.checkIn(patient.id, reason.trim(), triage);
+
+      onSuccess();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to check in patient.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -285,6 +320,12 @@ function CheckInDialog({ onClose, onSubmit }: CheckInDialogProps) {
               ))}
             </div>
           </div>
+
+          {error && (
+            <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-md px-3 py-2">
+              {error}
+            </p>
+          )}
         </div>
 
         <div className="px-6 py-4 border-t border-slate-200 bg-slate-50 flex justify-end gap-2 rounded-b-lg">
@@ -296,10 +337,10 @@ function CheckInDialog({ onClose, onSubmit }: CheckInDialogProps) {
           </button>
           <button
             onClick={handleSubmit}
-            disabled={!canSubmit}
+            disabled={!canSubmit || isSubmitting}
             className="px-4 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-md disabled:bg-slate-300 disabled:cursor-not-allowed"
           >
-            Add to queue
+            {isSubmitting ? "Adding..." : "Add to queue"}
           </button>
         </div>
       </div>
