@@ -209,6 +209,11 @@ function CheckInDialog({ onClose, onSuccess }: CheckInDialogProps) {
 
   const canSubmit = name.trim() && age.trim() && reason.trim();
 
+  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setName(val.replace(/(?:^|\s)\S/g, (c) => c.toUpperCase()));
+  };
+
   const handleSubmit = async () => {
     if (!canSubmit) return;
     setIsSubmitting(true);
@@ -252,7 +257,7 @@ function CheckInDialog({ onClose, onSuccess }: CheckInDialogProps) {
             <input
               type="text"
               value={name}
-              onChange={(e) => setName(e.target.value)}
+              onChange={handleNameChange}
               placeholder="e.g. Adaeze Okafor"
               className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               autoFocus
