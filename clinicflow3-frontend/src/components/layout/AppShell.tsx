@@ -2,47 +2,58 @@ import { useState } from "react";
 import { Outlet } from "react-router-dom";
 import { Sidebar } from "./Sidebar";
 import { TopBar } from "./TopBar";
-import { mockVisits } from "../../data/mockVisits";
-import { mockBeds, type Bed } from "../../data/mockBeds";
+import { useAuth } from "../../context/AuthContext";
 import type { Clinic, Visit } from "../../types";
 
-// Default clinic profile — replaced by real data after backend lands.
-const initialClinic: Clinic = {
-  id: "c1",
-  name: "Demo Clinic",
-  address: "12 Awolowo Road, Ikoyi, Lagos",
-  phone: "+234 803 000 0000",
-  email: "info@democlinic.ng",
-};
+// Bed type defined here now that mockBeds.ts is deleted
+export interface Bed {
+  id: string;
+  bedNumber: string;
+  ward: string;
+  status: "AVAILABLE" | "OCCUPIED";
+  patientName?: string;
+  patientId?: string;
+}
 
 // What every page gets when it calls useOutletContext<ClinicContext>()
 export interface ClinicContext {
   visits: Visit[];
   setVisits: React.Dispatch<React.SetStateAction<Visit[]>>;
-
   beds: Bed[];
   addBed: (bed: Omit<Bed, "id">) => void;
   updateBed: (id: string, patch: Partial<Bed>) => void;
   removeBed: (id: string) => void;
   toggleBedStatus: (id: string) => void;
-
   clinic: Clinic;
   updateClinic: (patch: Partial<Clinic>) => void;
 }
 
 export function AppShell() {
-  const [visits, setVisits] = useState<Visit[]>(mockVisits);
-  const [beds, setBeds] = useState<Bed[]>(mockBeds);
-  const [clinic, setClinic] = useState<Clinic>(initialClinic);
+  const { currentClinic } = useAuth();
 
-  // Bed action helpers — single place to update, multiple call sites
+  const clinic: Clinic = {
+    id: currentClinic?.id ?? "",
+    name: currentClinic?.name ?? "Loading...",
+    address: "",
+    phone: "",
+    email: "",
+  };
+
+  const [clinicOverride, setClinicOverride] = useState<Partial<Clinic>>({});
+  const [visits, setVisits] = useState<Visit[]>([]);
+  const [beds, setBeds] = useState<Bed[]>([]);
+
+  const mergedClinic: Clinic = { ...clinic, ...clinicOverride };
+
   const addBed = (bed: Omit<Bed, "id">) => {
     const newBed: Bed = { ...bed, id: `b${Date.now()}` };
     setBeds((current) => [...current, newBed]);
   };
 
   const updateBed = (id: string, patch: Partial<Bed>) => {
-    setBeds((current) => current.map((b) => (b.id === id ? { ...b, ...patch } : b)));
+    setBeds((current) =>
+      current.map((b) => (b.id === id ? { ...b, ...patch } : b))
+    );
   };
 
   const removeBed = (id: string) => {
@@ -62,20 +73,20 @@ export function AppShell() {
   };
 
   const updateClinic = (patch: Partial<Clinic>) => {
-    setClinic((current) => ({ ...current, ...patch }));
+    setClinicOverride((current) => ({ ...current, ...patch }));
   };
 
   const ctx: ClinicContext = {
     visits, setVisits,
     beds, addBed, updateBed, removeBed, toggleBedStatus,
-    clinic, updateClinic,
+    clinic: mergedClinic, updateClinic,
   };
 
   return (
     <div className="min-h-screen flex bg-slate-50">
       <Sidebar />
       <div className="flex-1 flex flex-col">
-        <TopBar clinic={clinic} />
+        <TopBar clinic={mergedClinic} />
         <main className="flex-1 p-6 overflow-auto">
           <Outlet context={ctx} />
         </main>

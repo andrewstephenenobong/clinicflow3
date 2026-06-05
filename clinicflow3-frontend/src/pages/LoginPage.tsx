@@ -15,7 +15,6 @@ export function LoginPage() {
     e.preventDefault();
     setError("");
 
-    // Basic validation
     if (!email.trim() || !password.trim()) {
       setError("Email and password are required.");
       return;
@@ -23,22 +22,13 @@ export function LoginPage() {
 
     setIsSubmitting(true);
 
-    // TEMPORARY — simulates a successful login with a mock admin user
-    // Session 2 replaces this block with: POST /api/auth/login
     try {
-      await new Promise((res) => setTimeout(res, 800)); // fake network delay
-
-      login({
-        id: "mock-user-1",
-        name: "Andrew Stephen",
-        email: email,
-        role: "ADMIN",
-        clinicId: "mock-clinic-1",
-      });
-
+      // Real API call — login() in AuthContext calls POST /api/auth/login
+      await login(email, password);
       navigate("/queue", { replace: true });
-    } catch {
-      setError("Login failed. Please try again.");
+    } catch (err) {
+      // Show the exact error message from the backend
+      setError(err instanceof Error ? err.message : "Login failed. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
@@ -64,7 +54,6 @@ export function LoginPage() {
           </p>
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Email */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Email address
@@ -81,7 +70,6 @@ export function LoginPage() {
               />
             </div>
 
-            {/* Password */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Password
@@ -98,7 +86,6 @@ export function LoginPage() {
               />
             </div>
 
-            {/* Error message */}
             {error && (
               <p className="text-sm text-red-600 bg-red-50 border border-red-200
                             rounded-lg px-3 py-2">
@@ -106,7 +93,6 @@ export function LoginPage() {
               </p>
             )}
 
-            {/* Submit */}
             <button
               type="submit"
               disabled={isSubmitting}
@@ -119,7 +105,6 @@ export function LoginPage() {
           </form>
         </div>
 
-        {/* Footer */}
         <p className="text-center text-xs text-gray-400 mt-6">
           ClinicFlow v1.0 — Built with purpose. Channeled from pain.
         </p>

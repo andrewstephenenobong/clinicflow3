@@ -1,58 +1,74 @@
 import { createContext, useContext, useState, useEffect } from "react";
 import type { ReactNode } from "react";
 import type { User } from "../types";
+import { authApi } from "../services/api";
 
-// --- Shape of what AuthContext provides to the whole app ---
 interface AuthContextType {
   currentUser: User | null;
+  currentClinic: { id: string; name: string } | null;
   isLoading: boolean;
-  login: (user: User) => void;
-  logout: () => void;
+  login: (email: string, password: string) => Promise<void>;
+  logout: () => Promise<void>;
 }
 
-// --- Create the context with a safe default ---
 const AuthContext = createContext<AuthContextType | null>(null);
 
-// --- Provider: wraps the whole app, holds the auth state ---
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [currentClinic, setCurrentClinic] = useState<{ id: string; name: string } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // On first load, check if a user was previously saved in localStorage
-  // TEMPORARY — Session 2 replaces this with a real GET /api/auth/me call
+  // On first load, call GET /api/auth/me to rehydrate session from httpOnly cookie.
+  // If the cookie is valid, we get the user back and stay logged in.
+  // If not, we get a 401 and stay on the login page.
+  // This replaces the old localStorage read.
   useEffect(() => {
-    const stored = localStorage.getItem("clinicflow_user");
-    if (stored) {
-      try {
-        setCurrentUser(JSON.parse(stored));
-      } catch {
-        localStorage.removeItem("clinicflow_user");
-      }
-    }
-    setIsLoading(false);
+    authApi.me()
+      .then(({ user, clinic }) => {
+        setCurrentUser({
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          role: user.role as User["role"],
+          clinicId: user.clinicId,
+        });
+        setCurrentClinic(clinic);
+      })
+      .catch(() => {
+        // No valid session — stay logged out, that's fine
+        setCurrentUser(null);
+        setCurrentClinic(null);
+      })
+      .finally(() => setIsLoading(false));
   }, []);
 
-  // Called after a successful login
-  // TEMPORARY — Session 2 replaces localStorage with real JWT httpOnly cookie
-  function login(user: User) {
-    localStorage.setItem("clinicflow_user", JSON.stringify(user));
-    setCurrentUser(user);
+  // Calls POST /api/auth/login — backend sets the httpOnly cookie
+  async function login(email: string, password: string) {
+    const { user, clinic } = await authApi.login(email, password);
+    setCurrentUser({
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role as User["role"],
+      clinicId: user.clinicId,
+    });
+    setCurrentClinic(clinic);
   }
 
-  // Called when user logs out
-  function logout() {
-    localStorage.removeItem("clinicflow_user");
+  // Calls POST /api/auth/logout — backend clears the httpOnly cookie
+  async function logout() {
+    await authApi.logout().catch(() => {});
     setCurrentUser(null);
+    setCurrentClinic(null);
   }
 
   return (
-    <AuthContext.Provider value={{ currentUser, isLoading, login, logout }}>
+    <AuthContext.Provider value={{ currentUser, currentClinic, isLoading, login, logout }}>
       {children}
     </AuthContext.Provider>
   );
 }
 
-// --- Hook: any component calls useAuth() to get auth state ---
 export function useAuth() {
   const ctx = useContext(AuthContext);
   if (!ctx) throw new Error("useAuth must be used inside AuthProvider");
