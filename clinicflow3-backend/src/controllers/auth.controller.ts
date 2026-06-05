@@ -4,11 +4,9 @@ import jwt from "jsonwebtoken";
 import { prisma } from "../lib/prisma";
 import type { AuthRequest } from "../middleware/auth";
 
-// Helper — signs a JWT and sets it as an httpOnly cookie
 function issueToken(res: Response, payload: object) {
   const secret = process.env.JWT_SECRET as string;
   const expiresIn = (process.env.JWT_EXPIRES_IN ?? "7d") as jwt.SignOptions["expiresIn"];
-
   const token = jwt.sign(payload, secret, { expiresIn });
 
   res.cookie("token", token, {
@@ -20,19 +18,15 @@ function issueToken(res: Response, payload: object) {
 }
 
 // POST /api/auth/register
-// Creates a new Clinic + Admin user atomically.
-// If either fails, both are rolled back.
 export async function register(req: Request, res: Response) {
   const { clinicName, clinicEmail, clinicPhone, clinicAddress,
           adminName, adminEmail, adminPassword } = req.body;
 
-  // Basic presence check
   if (!clinicName || !adminEmail || !adminPassword || !adminName) {
     res.status(400).json({ error: "Missing required fields" });
     return;
   }
 
-  // Check if admin email already exists
   const existing = await prisma.user.findUnique({
     where: { email: adminEmail },
   });
@@ -41,9 +35,9 @@ export async function register(req: Request, res: Response) {
     return;
   }
 
+  // Hash BEFORE the transaction — bcrypt is slow and times out inside Prisma tx
   const passwordHash = await bcrypt.hash(adminPassword, 12);
 
-  // Atomic transaction — clinic + admin created together or not at all
   const { clinic, admin } = await prisma.$transaction(async (tx) => {
     const clinic = await tx.clinic.create({
       data: {
@@ -103,7 +97,6 @@ export async function login(req: Request, res: Response) {
   });
 
   if (!user) {
-    // Same message for wrong email or wrong password — don't leak which one
     res.status(401).json({ error: "Invalid credentials" });
     return;
   }

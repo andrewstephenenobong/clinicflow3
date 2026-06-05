@@ -1,34 +1,34 @@
 import { useState } from "react";
-import { useAuth } from "../context/AuthContext";
 import { useNavigate, Link } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
+import { authApi } from "../services/api";
 
-export function LoginPage() {
+export function RegisterPage() {
   const { login } = useAuth();
   const navigate = useNavigate();
 
+  const [clinicName, setClinicName] = useState("");
+  const [adminName, setAdminName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const canSubmit = clinicName.trim() && adminName.trim() && email.trim() && password.trim();
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
-
-    if (!email.trim() || !password.trim()) {
-      setError("Email and password are required.");
-      return;
-    }
+    if (!canSubmit) return;
 
     setIsSubmitting(true);
-
     try {
-      // Real API call — login() in AuthContext calls POST /api/auth/login
-      await login(email, password);
+      await authApi.register(clinicName.trim(), adminName.trim(), email.trim(), password);
+      // Log them in immediately after registration
+      await login(email.trim(), password);
       navigate("/queue", { replace: true });
     } catch (err) {
-      // Show the exact error message from the backend
-      setError(err instanceof Error ? err.message : "Login failed. Please try again.");
+      setError(err instanceof Error ? err.message : "Registration failed. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
@@ -38,22 +38,52 @@ export function LoginPage() {
     <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
       <div className="w-full max-w-md">
 
-        {/* Logo / Brand */}
         <div className="text-center mb-8">
           <h1 className="text-2xl font-bold text-blue-600">ClinicFlow</h1>
           <p className="text-sm text-gray-500 mt-1">by Kairos Labs</p>
         </div>
 
-        {/* Card */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
           <h2 className="text-xl font-semibold text-gray-900 mb-1">
-            Sign in to your clinic
+            Register your clinic
           </h2>
           <p className="text-sm text-gray-500 mb-6">
-            Enter your staff credentials to continue.
+            Get started in under 2 minutes.
           </p>
 
           <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Clinic name
+              </label>
+              <input
+                type="text"
+                value={clinicName}
+                onChange={(e) => setClinicName(e.target.value)}
+                placeholder="e.g. Bright Life Clinic"
+                disabled={isSubmitting}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm
+                           focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
+                           disabled:bg-gray-50 disabled:text-gray-400"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Your name
+              </label>
+              <input
+                type="text"
+                value={adminName}
+                onChange={(e) => setAdminName(e.target.value)}
+                placeholder="e.g. Dr. Adaeze Okafor"
+                disabled={isSubmitting}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm
+                           focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
+                           disabled:bg-gray-50 disabled:text-gray-400"
+              />
+            </div>
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Email address
@@ -95,26 +125,26 @@ export function LoginPage() {
 
             <button
               type="submit"
-              disabled={isSubmitting}
+              disabled={!canSubmit || isSubmitting}
               className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400
                          text-white font-medium py-2.5 rounded-lg text-sm
                          transition-colors duration-150"
             >
-              {isSubmitting ? "Signing in..." : "Sign in"}
+              {isSubmitting ? "Creating account..." : "Create account"}
             </button>
           </form>
+
           <p className="text-center text-sm text-gray-500 mt-6">
-             Don't have an account?{" "}
-             <Link to="/register" className="text-blue-600 hover:underline font-medium">
-               Register your clinic
-             </Link>
+            Already have an account?{" "}
+            <Link to="/login" className="text-blue-600 hover:underline font-medium">
+              Sign in
+            </Link>
           </p>
         </div>
 
         <p className="text-center text-xs text-gray-400 mt-6">
           ClinicFlow v1.0 — Built with purpose. Channeled from pain.
         </p>
-
       </div>
     </div>
   );

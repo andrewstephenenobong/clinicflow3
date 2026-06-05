@@ -20,6 +20,12 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 
 // ── Auth ──
 export const authApi = {
+  register: (clinicName: string, adminName: string, email: string, password: string) =>
+    request<{ user: ApiUser; clinic: ApiClinic }>("/api/auth/register", {
+      method: "POST",
+      body: JSON.stringify({ clinicName, adminName, adminEmail: email, adminPassword: password }),
+    }),
+
   login: (email: string, password: string) =>
     request<{ user: ApiUser; clinic: ApiClinic }>("/api/auth/login", {
       method: "POST",
@@ -67,6 +73,7 @@ export const bedApi = {
       body: JSON.stringify({ status, patientId }),
     }),
 };
+
 // ── Patients ──
 export const patientApi = {
   getAll: () =>
