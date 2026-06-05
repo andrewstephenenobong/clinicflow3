@@ -1,60 +1,43 @@
-import { useState, useMemo } from "react";
-import { useOutletContext } from "react-router-dom";
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Badge } from "../components/ui/Badge";
-import type { Patient, Triage, Visit } from "../types";
-import type { ClinicContext } from "../components/layout/AppShell";
+import { patientApi } from "../services/api";
+import type { Triage } from "../types";
 
 function triageVariant(t: Triage) {
   return t === "EMERGENCY" ? "emergency" : t === "URGENT" ? "urgent" : "routine";
 }
 
 function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString([], { year: "numeric", month: "short", day: "numeric" });
-}
-
-interface PatientWithVisits {
-  patient: Patient;
-  visits: Visit[];
-  lastVisit: string;
-  totalVisits: number;
+  return new Date(iso).toLocaleDateString([], {
+    year: "numeric", month: "short", day: "numeric",
+  });
 }
 
 export function PatientsPage() {
-  const { visits } = useOutletContext<ClinicContext>();
   const [search, setSearch] = useState("");
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
-  // Deduplicate: group every visit by patient ID, build a patient-centric view.
-  // useMemo means we only recompute when `visits` changes, not on every render.
-  const patients: PatientWithVisits[] = useMemo(() => {
-    const byPatientId = new Map<string, PatientWithVisits>();
+  const { data, isLoading } = useQuery({
+    queryKey: ["patients"],
+    queryFn: () => patientApi.getAll(),
+  });
 
-    for (const v of visits) {
-      const existing = byPatientId.get(v.patient.id);
-      if (existing) {
-        existing.visits.push(v);
-        existing.totalVisits = existing.visits.length;
-        if (v.checkedInAt > existing.lastVisit) existing.lastVisit = v.checkedInAt;
-      } else {
-        byPatientId.set(v.patient.id, {
-          patient: v.patient,
-          visits: [v],
-          lastVisit: v.checkedInAt,
-          totalVisits: 1,
-        });
-      }
-    }
+  const patients = data?.patients ?? [];
 
-    // Sort by most recent visit
-    return Array.from(byPatientId.values()).sort((a, b) =>
-      b.lastVisit.localeCompare(a.lastVisit)
-    );
-  }, [visits]);
-
-  // Filter by search query
   const filtered = patients.filter((p) =>
-    p.patient.name.toLowerCase().includes(search.toLowerCase())
+    p.name.toLowerCase().includes(search.toLowerCase())
   );
+
+  if (isLoading) {
+    return (
+      <div className="max-w-5xl mx-auto">
+        <div className="flex items-center justify-center py-20 text-sm text-slate-400">
+          Loading patients...
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-5xl mx-auto">
@@ -67,14 +50,15 @@ export function PatientsPage() {
         </div>
       </div>
 
-      {/* Search bar */}
+      {/* Search */}
       <div className="mb-4">
         <input
           type="text"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search by name…"
-          className="w-full max-w-sm px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          className="w-full max-w-sm px-3 py-2 border border-slate-300 rounded-md text-sm
+                     focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
         />
       </div>
 
@@ -86,13 +70,17 @@ export function PatientsPage() {
           </div>
         ) : (
           <ul className="divide-y divide-slate-100">
-            {filtered.map(({ patient, visits, lastVisit, totalVisits }) => {
+            {filtered.map((patient) => {
               const isExpanded = expandedId === patient.id;
               return (
                 <li key={patient.id}>
+                  {/* Patient row */}
                   <button
-                    onClick={() => setExpandedId(isExpanded ? null : patient.id)}
-                    className="w-full flex items-center justify-between px-5 py-4 hover:bg-slate-50 transition-colors text-left"
+                    onClick={() =>
+                      setExpandedId(isExpanded ? null : patient.id)
+                    }
+                    className="w-full flex items-center justify-between px-5 py-4
+                               hover:bg-slate-50 transition-colors text-left"
                   >
                     <div>
                       <p className="font-semibold text-slate-900">
@@ -102,50 +90,20 @@ export function PatientsPage() {
                         </span>
                       </p>
                       <p className="text-xs text-slate-500 mt-0.5">
-                        {patient.phone || "no phone on file"}
+                        {patient.phone ?? "no phone on file"}
                       </p>
                     </div>
 
                     <div className="flex items-center gap-4 text-right">
-                      <div>
-                        <p className="text-xs font-medium text-slate-500">Last visit</p>
-                        <p className="text-sm text-slate-700">{formatDate(lastVisit)}</p>
-                      </div>
-                      <div className="w-12">
-                        <p className="text-xs font-medium text-slate-500">Visits</p>
-                        <p className="text-sm font-semibold text-slate-900">{totalVisits}</p>
-                      </div>
                       <span className="text-slate-400 text-lg">
                         {isExpanded ? "▾" : "▸"}
                       </span>
                     </div>
                   </button>
 
+                  {/* Expanded visit history */}
                   {isExpanded && (
-                    <div className="px-5 pb-4 bg-slate-50/50">
-                      <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
-                        Visit history
-                      </p>
-                      <ul className="space-y-2">
-                        {visits
-                          .slice()
-                          .sort((a, b) => b.checkedInAt.localeCompare(a.checkedInAt))
-                          .map((v) => (
-                            <li
-                              key={v.id}
-                              className="flex items-center justify-between bg-white border border-slate-200 rounded-md px-3 py-2"
-                            >
-                              <div>
-                                <p className="text-sm text-slate-800">{v.reason}</p>
-                                <p className="text-xs text-slate-500 mt-0.5">
-                                  {formatDate(v.checkedInAt)} · {v.status}
-                                </p>
-                              </div>
-                              <Badge variant={triageVariant(v.triage)}>{v.triage}</Badge>
-                            </li>
-                          ))}
-                      </ul>
-                    </div>
+                    <VisitHistory patientId={patient.id} />
                   )}
                 </li>
               );
@@ -153,6 +111,55 @@ export function PatientsPage() {
           </ul>
         )}
       </div>
+    </div>
+  );
+}
+
+// Loads visit history on demand when a patient row is expanded
+function VisitHistory({ patientId }: { patientId: string }) {
+  const { data, isLoading } = useQuery({
+    queryKey: ["patient", patientId],
+    queryFn: () => patientApi.getOne(patientId),
+  });
+
+  if (isLoading) {
+    return (
+      <div className="px-5 pb-4 bg-slate-50/50 text-xs text-slate-400">
+        Loading visits...
+      </div>
+    );
+  }
+
+  const visits = data?.patient?.visits ?? [];
+
+  return (
+    <div className="px-5 pb-4 bg-slate-50/50">
+      <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
+        Visit history
+      </p>
+      {visits.length === 0 ? (
+        <p className="text-xs text-slate-400">No visits on record.</p>
+      ) : (
+        <ul className="space-y-2">
+          {visits.map((v) => (
+            <li
+              key={v.id}
+              className="flex items-center justify-between bg-white border
+                         border-slate-200 rounded-md px-3 py-2"
+            >
+              <div>
+                <p className="text-sm text-slate-800">{v.reason}</p>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  {formatDate(v.checkedInAt)} · {v.status}
+                </p>
+              </div>
+              <Badge variant={triageVariant(v.triage as Triage)}>
+                {v.triage}
+              </Badge>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }
