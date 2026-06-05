@@ -3,7 +3,8 @@ import { useOutletContext } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { Badge } from "../components/ui/Badge";
 import { queueApi } from "../services/api";
-import type { Triage, Visit, VisitStatus } from "../types";
+import { useToast } from "../context/ToastContext";
+import type { Triage, VisitStatus } from "../types";
 import type { ClinicContext } from "../components/layout/AppShell";
 
 const triageOrder: Record<Triage, number> = {
@@ -27,31 +28,32 @@ function formatTime(iso: string) {
 export function QueuePage() {
   const { visits, isLoadingQueue } = useOutletContext<ClinicContext>();
   const queryClient = useQueryClient();
+  const { showToast } = useToast();
 
   const [showCheckIn, setShowCheckIn] = useState(false);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
-  // Call patient — hits real API, then refreshes queue
   const callVisit = async (id: string) => {
     setActionLoading(id);
     try {
       await queueApi.call(id);
       queryClient.invalidateQueries({ queryKey: ["queue", "today"] });
+      showToast("Patient called to doctor");
     } catch (err) {
-      console.error("Failed to call patient:", err);
+      showToast("Failed to call patient", "error");
     } finally {
       setActionLoading(null);
     }
   };
 
-  // Mark seen — hits real API, then refreshes queue
   const markSeen = async (id: string) => {
     setActionLoading(id);
     try {
       await queueApi.markSeen(id);
       queryClient.invalidateQueries({ queryKey: ["queue", "today"] });
+      showToast("Patient marked as seen");
     } catch (err) {
-      console.error("Failed to mark seen:", err);
+      showToast("Failed to mark patient as seen", "error");
     } finally {
       setActionLoading(null);
     }
@@ -181,6 +183,7 @@ export function QueuePage() {
           onSuccess={() => {
             setShowCheckIn(false);
             queryClient.invalidateQueries({ queryKey: ["queue", "today"] });
+            showToast("Patient checked in successfully");
           }}
         />
       )}
@@ -212,17 +215,13 @@ function CheckInDialog({ onClose, onSuccess }: CheckInDialogProps) {
     setError("");
 
     try {
-      // Step 1 — create the patient
       const { patientApi } = await import("../services/api");
       const { patient } = await patientApi.create(
         name.trim(),
         Number(age),
         gender
       );
-
-      // Step 2 — check them in to the queue
       await queueApi.checkIn(patient.id, reason.trim(), triage);
-
       onSuccess();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to check in patient.");
