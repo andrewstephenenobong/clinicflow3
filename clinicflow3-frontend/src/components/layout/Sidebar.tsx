@@ -1,13 +1,18 @@
 import { NavLink } from "react-router-dom";
-
-const navItems = [
-  { to: "/queue", label: "Queue" },
-  { to: "/patients", label: "Patients" },
-  { to: "/beds", label: "Beds" },
-  { to: "/settings", label: "Settings" },
-];
+import { useAuth } from "../../context/AuthContext";
 
 export function Sidebar() {
+  const { currentUser } = useAuth();
+  const isAdmin = currentUser?.role === "ADMIN";
+
+  const navItems = [
+    ...(isAdmin ? [{ to: "/dashboard", label: "Dashboard" }] : []),
+    { to: "/queue", label: "Queue" },
+    { to: "/patients", label: "Patients" },
+    { to: "/beds", label: "Beds" },
+    { to: "/settings", label: "Settings" },
+  ];
+
   return (
     <aside className="w-60 bg-white border-r border-slate-200 flex flex-col">
       <div className="px-6 py-5 border-b border-slate-200">

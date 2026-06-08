@@ -104,6 +104,18 @@ export const staffApi = {
       method: "DELETE",
     }),
 };
+// ── Dashboard ──
+export const dashboardApi = {
+  getStats: () =>
+    request<{
+      patientsSeenToday: number;
+      patientsCheckedInToday: number;
+      totalPatients: number;
+      availableBeds: number;
+      totalBeds: number;
+      totalStaff: number;
+    }>("/api/dashboard/stats"),
+};
 
 // ── Shared API response types ──
 export interface ApiUser {
