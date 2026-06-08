@@ -1,6 +1,6 @@
 import { useOutletContext } from "react-router-dom";
 import type { ClinicContext } from "../components/layout/AppShell";
-import type { Bed } from "../data/mockBeds";
+import type { Bed } from "../components/layout/AppShell";
 
 function bedStyles(status: Bed["status"]) {
   return status === "AVAILABLE"
