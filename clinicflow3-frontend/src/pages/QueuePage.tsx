@@ -4,6 +4,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Badge } from "../components/ui/Badge";
 import { queueApi } from "../services/api";
 import { useToast } from "../context/ToastContext";
+import { WelcomeBanner } from "../components/ui/WelcomeBanner";
 import type { Triage, VisitStatus } from "../types";
 import type { ClinicContext } from "../components/layout/AppShell";
 
@@ -80,6 +81,9 @@ export function QueuePage() {
 
   return (
     <div className="max-w-5xl mx-auto">
+      {/* Welcome banner — only shows when queue is empty */}
+      {visits.length === 0 && !isLoadingQueue && <WelcomeBanner />}
+
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Today's Queue</h1>
