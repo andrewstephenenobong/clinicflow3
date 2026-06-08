@@ -17,7 +17,7 @@ export function Sidebar() {
     <aside className="w-60 bg-white border-r border-slate-200 flex flex-col">
       <div className="px-6 py-5 border-b border-slate-200">
         <h1 className="text-xl font-bold text-blue-600">ClinicFlow</h1>
-        <p className="text-xs text-slate-500 mt-0.5">by Kairos Labs</p>
+        <p className="text-xs text-slate-500 mt-0.5">by Andrew Cares</p>
       </div>
 
       <nav className="flex-1 px-3 py-4 space-y-1">
@@ -39,7 +39,7 @@ export function Sidebar() {
       </nav>
 
       <div className="px-6 py-4 border-t border-slate-200 text-xs text-slate-400">
-        Built with purpose. Made with care. © 2026 Kairos Labs.
+        Built with purpose. Made with care. © 2026 Andrew Cares.
       </div>
     </aside>
   );

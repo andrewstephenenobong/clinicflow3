@@ -496,7 +496,7 @@ function AboutSection() {
           Crafted with care. Made for Nigerian healthcare workers, by a Nigerian founder.
         </p>
         <p className="text-slate-400 text-xs mt-2">
-          by Kairos Labs · Andrew Stephen Enobong ·{" "}
+          by Andrew Cares · Andrew Stephen Enobong ·{" "}
           <a  href="https://github.com/andrewstephenenobong/clinicflow3"
             target="_blank"
             rel="noopener noreferrer"
