@@ -88,6 +88,22 @@ export const patientApi = {
       body: JSON.stringify({ name, age, gender, phone }),
     }),
 };
+// ── Staff ──
+export const staffApi = {
+  getAll: () =>
+    request<{ staff: ApiStaff[] }>("/api/staff"),
+
+  create: (name: string, email: string, password: string, role: string) =>
+    request<{ user: ApiStaff }>("/api/staff", {
+      method: "POST",
+      body: JSON.stringify({ name, email, password, role }),
+    }),
+
+  remove: (staffId: string) =>
+    request<{ message: string }>(`/api/staff/${staffId}`, {
+      method: "DELETE",
+    }),
+};
 
 // ── Shared API response types ──
 export interface ApiUser {
@@ -133,4 +149,13 @@ export interface ApiBed {
   status: "AVAILABLE" | "OCCUPIED";
   patientId: string | null;
   patient: { id: string; name: string } | null;
+}
+
+export interface ApiStaff {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  status: string;
+  createdAt: string;
 }
