@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "../context/AuthContext";
 import { dashboardApi } from "../services/api";
+import { WelcomeBanner } from "../components/ui/WelcomeBanner";
 
 function StatCard({
   label,
@@ -48,7 +49,10 @@ export function DashboardPage() {
 
   return (
     <div className="max-w-5xl mx-auto">
-      <div className="mb-8">
+      {/* Welcome banner — shows when clinic has no patients yet */}
+      {stats?.totalPatients === 0 && <WelcomeBanner />}
+
+      <div className="mb-6">
         <h1 className="text-2xl font-bold text-slate-900">Dashboard</h1>
         <p className="text-sm text-slate-500 mt-1">
           {currentClinic?.name} · Today's overview

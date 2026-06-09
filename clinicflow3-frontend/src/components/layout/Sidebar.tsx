@@ -14,13 +14,13 @@ export function Sidebar() {
   ];
 
   return (
-    <aside className="w-60 bg-white border-r border-slate-200 flex flex-col">
+    <aside className="w-60 bg-white border-r border-slate-200 flex flex-col h-screen sticky top-0">
       <div className="px-6 py-5 border-b border-slate-200">
         <h1 className="text-xl font-bold text-blue-600">ClinicFlow</h1>
         <p className="text-xs text-slate-500 mt-0.5">by Andrew Cares</p>
       </div>
 
-      <nav className="flex-1 px-3 py-4 space-y-1">
+      <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
         {navItems.map((item) => (
           <NavLink
             key={item.to}

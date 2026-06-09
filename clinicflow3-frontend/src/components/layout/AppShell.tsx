@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Outlet } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
+import { NavLink } from "react-router-dom";
 import { Sidebar } from "./Sidebar";
 import { TopBar } from "./TopBar";
 import { useAuth } from "../../context/AuthContext";
@@ -31,7 +32,6 @@ export interface ClinicContext {
   isLoadingBeds: boolean;
 }
 
-// Map API visit to frontend Visit type
 function mapVisit(v: ApiVisit): Visit {
   return {
     id: v.id,
@@ -49,7 +49,6 @@ function mapVisit(v: ApiVisit): Visit {
   };
 }
 
-// Map API bed to frontend Bed type
 function mapBed(b: ApiBed): Bed {
   return {
     id: b.id,
@@ -59,6 +58,41 @@ function mapBed(b: ApiBed): Bed {
     patientName: b.patient?.name,
     patientId: b.patientId ?? undefined,
   };
+}
+
+// Bottom nav for mobile
+function BottomNav() {
+  const { currentUser } = useAuth();
+  const isAdmin = currentUser?.role === "ADMIN";
+
+  const items = [
+    ...(isAdmin ? [{ to: "/dashboard", label: "Dashboard", icon: "📊" }] : []),
+    { to: "/queue", label: "Queue", icon: "🏥" },
+    { to: "/patients", label: "Patients", icon: "👥" },
+    { to: "/beds", label: "Beds", icon: "🛏" },
+    { to: "/settings", label: "Settings", icon: "⚙️" },
+  ];
+
+  return (
+    <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 z-40 md:hidden">
+      <div className="flex">
+        {items.map((item) => (
+          <NavLink
+            key={item.to}
+            to={item.to}
+            className={({ isActive }) =>
+              `flex-1 flex flex-col items-center justify-center py-2 text-xs font-medium transition-colors ${
+                isActive ? "text-blue-600" : "text-slate-500"
+              }`
+            }
+          >
+            <span className="text-lg mb-0.5">{item.icon}</span>
+            <span>{item.label}</span>
+          </NavLink>
+        ))}
+      </div>
+    </nav>
+  );
 }
 
 export function AppShell() {
@@ -75,13 +109,11 @@ export function AppShell() {
 
   const mergedClinic: Clinic = { ...clinic, ...clinicOverride };
 
-  // Fetch today's queue from real API
   const { data: queueData, isLoading: isLoadingQueue } = useQuery({
     queryKey: ["queue", "today"],
     queryFn: () => queueApi.getToday(),
   });
 
-  // Fetch beds from real API
   const { data: bedsData, isLoading: isLoadingBeds } = useQuery({
     queryKey: ["beds"],
     queryFn: () => bedApi.getAll(),
@@ -90,7 +122,6 @@ export function AppShell() {
   const visits: Visit[] = (queueData?.visits ?? []).map(mapVisit);
   const beds: Bed[] = (bedsData?.beds ?? []).map(mapBed);
 
-  // These remain local for now — full CRUD via API comes next session
   const [localBeds, setLocalBeds] = useState<Bed[]>([]);
   const allBeds = beds.length > 0 ? beds : localBeds;
 
@@ -125,7 +156,6 @@ export function AppShell() {
     setClinicOverride((current) => ({ ...current, ...patch }));
   };
 
-  // visits state + setVisits kept for compatibility with QueuePage actions
   const [localVisits, setLocalVisits] = useState<Visit[]>([]);
   const allVisits = visits.length > 0 ? visits : localVisits;
 
@@ -141,13 +171,20 @@ export function AppShell() {
 
   return (
     <div className="min-h-screen flex bg-slate-50">
-      <Sidebar />
-      <div className="flex-1 flex flex-col">
+      {/* Sidebar — hidden on mobile */}
+      <div className="hidden md:block">
+        <Sidebar />
+      </div>
+
+      <div className="flex-1 flex flex-col min-w-0">
         <TopBar clinic={mergedClinic} />
-        <main className="flex-1 p-6 overflow-auto">
+        <main className="flex-1 p-4 md:p-6 overflow-auto pb-20 md:pb-6">
           <Outlet context={ctx} />
         </main>
       </div>
+
+      {/* Bottom nav — mobile only */}
+      <BottomNav />
     </div>
   );
 }
