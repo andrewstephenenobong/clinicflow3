@@ -32,7 +32,6 @@ export function DashboardPage() {
   const { data, isLoading } = useQuery({
     queryKey: ["dashboard", "stats"],
     queryFn: () => dashboardApi.getStats(),
-    refetchInterval: 60 * 1000,
   });
 
   if (isLoading) {

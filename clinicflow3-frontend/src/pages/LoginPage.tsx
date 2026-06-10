@@ -24,8 +24,8 @@ export function LoginPage() {
     setIsSubmitting(true);
 
     try {
-      await login(email, password);
-      navigate("/queue", { replace: true });
+      const user = await login(email, password);
+      navigate(user.role === "ADMIN" ? "/dashboard" : "/queue", { replace: true });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login failed. Please try again.");
     } finally {

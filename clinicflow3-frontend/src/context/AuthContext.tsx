@@ -7,7 +7,7 @@ interface AuthContextType {
   currentUser: User | null;
   currentClinic: { id: string; name: string } | null;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<User>;
   logout: () => Promise<void>;
 }
 
@@ -45,14 +45,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Calls POST /api/auth/login — backend sets the httpOnly cookie
   async function login(email: string, password: string) {
     const { user, clinic } = await authApi.login(email, password);
-    setCurrentUser({
+    const mappedUser: User = {
       id: user.id,
       name: user.name,
       email: user.email,
       role: user.role as User["role"],
       clinicId: user.clinicId,
-    });
+    };
+    setCurrentUser(mappedUser);
     setCurrentClinic(clinic);
+    return mappedUser;
   }
 
   // Calls POST /api/auth/logout — backend clears the httpOnly cookie
