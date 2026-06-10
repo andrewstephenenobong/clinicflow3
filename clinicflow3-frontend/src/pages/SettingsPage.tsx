@@ -82,23 +82,29 @@ function ClinicProfileSection({
           {field("Email", "email", "email")}
         </div>
       </div>
-      <div className="px-5 py-3 border-t border-slate-200 bg-slate-50 flex justify-end gap-2">
-        <button
-          onClick={() => setDraft(clinic)}
-          disabled={!dirty}
-          className="px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100
-                     rounded-md disabled:text-slate-400 disabled:hover:bg-transparent"
-        >
-          Reset
-        </button>
-        <button
-          onClick={() => onSave(draft)}
-          disabled={!dirty}
-          className="px-4 py-2 text-sm font-semibold text-white bg-blue-600
-                     hover:bg-blue-700 rounded-md disabled:bg-slate-300 disabled:cursor-not-allowed"
-        >
-          Save changes
-        </button>
+      <div className="px-5 py-3 border-t border-slate-200 bg-slate-50">
+        <p className="text-xs text-slate-500 mb-3">
+          Changes apply to this session and update the header right away. Permanent
+          saving to your account is coming soon.
+        </p>
+        <div className="flex justify-end gap-2">
+          <button
+            onClick={() => setDraft(clinic)}
+            disabled={!dirty}
+            className="px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100
+                       rounded-md disabled:text-slate-400 disabled:hover:bg-transparent"
+          >
+            Reset
+          </button>
+          <button
+            onClick={() => onSave(draft)}
+            disabled={!dirty}
+            className="px-4 py-2 text-sm font-semibold text-white bg-blue-600
+                       hover:bg-blue-700 rounded-md disabled:bg-slate-300 disabled:cursor-not-allowed"
+          >
+            Apply changes
+          </button>
+        </div>
       </div>
     </section>
   );
@@ -176,6 +182,9 @@ function BedManagementSection({
             Add bed
           </button>
         </div>
+        <p className="text-xs text-slate-500 mt-3">
+          Beds added here apply to this session. Permanent saving is coming soon.
+        </p>
       </div>
       {beds.length === 0 ? (
         <div className="px-5 py-10 text-center text-sm text-slate-400">
@@ -270,6 +279,7 @@ function StaffSection() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [role, setRole] = useState("DOCTOR");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -300,7 +310,7 @@ function StaffSection() {
       queryClient.invalidateQueries({ queryKey: ["staff"] });
       showToast("Staff member added");
       setShowAdd(false);
-      setName(""); setEmail(""); setPassword(""); setRole("DOCTOR");
+      setName(""); setEmail(""); setPassword(""); setRole("DOCTOR"); setShowPassword(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to add staff.");
     } finally {
@@ -363,14 +373,23 @@ function StaffSection() {
             </div>
             <div>
               <label className="block text-xs font-medium text-slate-700 mb-1">Temporary password</label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm
-                           focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
+              <div className="relative">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm pr-10
+                             focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                >
+                  {showPassword ? "🙈" : "👁"}
+                </button>
+              </div>
             </div>
             <div>
               <label className="block text-xs font-medium text-slate-700 mb-1">Role</label>
@@ -488,7 +507,7 @@ function AboutSection() {
       <h2 className="text-sm font-semibold text-slate-700 uppercase tracking-wide mb-3">About</h2>
       <div className="space-y-1 text-sm">
         <p className="text-slate-700">
-          <span className="font-semibold">ClinicFlow</span> · v0.2.0
+          <span className="font-semibold">ClinicFlow</span> · v1.0
         </p>
         <p className="text-slate-500">Hospital & clinic management, built for Nigeria.</p>
         <p className="text-slate-500 mt-3 italic">
@@ -497,7 +516,8 @@ function AboutSection() {
         </p>
         <p className="text-slate-400 text-xs mt-2">
           by Andrew Cares · Andrew Stephen Enobong ·{" "}
-          <a  href="https://github.com/andrewstephenenobong/clinicflow3"
+          <a
+            href="https://github.com/andrewstephenenobong/clinicflow3"
             target="_blank"
             rel="noopener noreferrer"
             className="text-blue-600 hover:text-blue-700 underline"
