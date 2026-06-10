@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
 import { staffApi } from "../services/api";
+import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 import type { ClinicContext, Bed } from "../components/layout/AppShell";
 
 export function SettingsPage() {
@@ -212,6 +213,7 @@ function BedRow({
   const [editing, setEditing] = useState(false);
   const [draftNumber, setDraftNumber] = useState(bed.bedNumber);
   const [draftWard, setDraftWard] = useState(bed.ward);
+  const [confirmingRemove, setConfirmingRemove] = useState(false);
 
   const save = () => {
     onUpdate(bed.id, { bedNumber: draftNumber.trim(), ward: draftWard.trim() });
@@ -258,13 +260,26 @@ function BedRow({
           </span>
           <button onClick={() => setEditing(true)} className="text-xs font-semibold text-slate-600 hover:text-slate-800">Edit</button>
           <button
-            onClick={() => { if (confirm(`Remove bed ${bed.bedNumber}?`)) onRemove(bed.id); }}
+            onClick={() => setConfirmingRemove(true)}
             className="text-xs font-semibold text-rose-600 hover:text-rose-700"
           >
             Remove
           </button>
         </>
       )}
+
+      <ConfirmDialog
+        open={confirmingRemove}
+        title="Remove bed"
+        message={`Remove bed ${bed.bedNumber}? This cannot be undone.`}
+        confirmLabel="Remove"
+        danger
+        onConfirm={() => {
+          onRemove(bed.id);
+          setConfirmingRemove(false);
+        }}
+        onCancel={() => setConfirmingRemove(false)}
+      />
     </li>
   );
 }
@@ -283,6 +298,9 @@ function StaffSection() {
   const [role, setRole] = useState("DOCTOR");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
+
+  // Pending staff member to remove — null means the confirm dialog is closed
+  const [pendingRemove, setPendingRemove] = useState<{ id: string; name: string } | null>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ["staff"],
@@ -318,8 +336,11 @@ function StaffSection() {
     }
   };
 
-  const handleRemove = async (id: string, staffName: string) => {
-    if (!confirm(`Remove ${staffName}? This cannot be undone.`)) return;
+  // Actually performs the deletion — called by the confirm dialog
+  const confirmRemove = async () => {
+    if (!pendingRemove) return;
+    const { id } = pendingRemove;
+    setPendingRemove(null);
     try {
       await staffApi.remove(id);
       queryClient.invalidateQueries({ queryKey: ["staff"] });
@@ -456,7 +477,7 @@ function StaffSection() {
                   {member.status}
                 </span>
                 <button
-                  onClick={() => handleRemove(member.id, member.name)}
+                  onClick={() => setPendingRemove({ id: member.id, name: member.name })}
                   className="text-xs font-semibold text-rose-600 hover:text-rose-700"
                 >
                   Remove
@@ -466,6 +487,20 @@ function StaffSection() {
           ))}
         </ul>
       )}
+
+      <ConfirmDialog
+        open={pendingRemove !== null}
+        title="Remove staff member"
+        message={
+          pendingRemove
+            ? `Remove ${pendingRemove.name}? This cannot be undone.`
+            : ""
+        }
+        confirmLabel="Remove"
+        danger
+        onConfirm={confirmRemove}
+        onCancel={() => setPendingRemove(null)}
+      />
     </section>
   );
 }
