@@ -67,10 +67,24 @@ export const bedApi = {
   getAll: () =>
     request<{ beds: ApiBed[] }>("/api/beds"),
 
-  update: (bedId: string, status: string, patientId?: string) =>
+  create: (bedNumber: string, ward: string) =>
+    request<{ bed: ApiBed }>("/api/beds", {
+      method: "POST",
+      body: JSON.stringify({ bedNumber, ward }),
+    }),
+
+  update: (
+    bedId: string,
+    data: { status?: string; patientId?: string; bedNumber?: string; ward?: string }
+  ) =>
     request<{ bed: ApiBed }>(`/api/beds/${bedId}`, {
       method: "PATCH",
-      body: JSON.stringify({ status, patientId }),
+      body: JSON.stringify(data),
+    }),
+
+  remove: (bedId: string) =>
+    request<{ message: string }>(`/api/beds/${bedId}`, {
+      method: "DELETE",
     }),
 };
 

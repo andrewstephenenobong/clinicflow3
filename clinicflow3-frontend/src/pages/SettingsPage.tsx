@@ -148,15 +148,25 @@ function BedManagementSection({
   onUpdate: ClinicContext["updateBed"];
   onRemove: ClinicContext["removeBed"];
 }) {
+  const { showToast } = useToast();
   const [newBedNumber, setNewBedNumber] = useState("");
   const [newBedWard, setNewBedWard] = useState("General");
+  const [isAdding, setIsAdding] = useState(false);
 
   const wards = Array.from(new Set(beds.map((b) => b.ward))).sort();
 
-  const handleAdd = () => {
+  const handleAdd = async () => {
     if (!newBedNumber.trim()) return;
-    onAdd({ bedNumber: newBedNumber.trim(), ward: newBedWard, status: "AVAILABLE" });
-    setNewBedNumber("");
+    setIsAdding(true);
+    try {
+      await onAdd({ bedNumber: newBedNumber.trim(), ward: newBedWard, status: "AVAILABLE" });
+      showToast("Bed added");
+      setNewBedNumber("");
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : "Failed to add bed", "error");
+    } finally {
+      setIsAdding(false);
+    }
   };
 
   return (
@@ -200,16 +210,13 @@ function BedManagementSection({
           </div>
           <button
             onClick={handleAdd}
-            disabled={!newBedNumber.trim()}
+            disabled={!newBedNumber.trim() || isAdding}
             className="px-4 py-2 text-sm font-semibold text-white bg-blue-600
                        hover:bg-blue-700 rounded-md disabled:bg-slate-300 disabled:cursor-not-allowed"
           >
-            Add bed
+            {isAdding ? "Adding..." : "Add bed"}
           </button>
         </div>
-        <p className="text-xs text-slate-500 mt-3">
-          Beds added here apply to this session. Permanent saving is coming soon.
-        </p>
       </div>
       {beds.length === 0 ? (
         <div className="px-5 py-10 text-center text-sm text-slate-400">
@@ -225,7 +232,6 @@ function BedManagementSection({
     </section>
   );
 }
-
 function BedRow({
   bed, onUpdate, onRemove, wards,
 }: {
@@ -307,7 +313,6 @@ function BedRow({
     </li>
   );
 }
-
 // ── STAFF SECTION ────────────────────────────────────────────────────────────
 
 function StaffSection() {

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Outlet } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { NavLink } from "react-router-dom";
 import { Sidebar } from "./Sidebar";
 import { TopBar } from "./TopBar";
@@ -22,10 +22,10 @@ export interface ClinicContext {
   visits: Visit[];
   setVisits: React.Dispatch<React.SetStateAction<Visit[]>>;
   beds: Bed[];
-  addBed: (bed: Omit<Bed, "id">) => void;
-  updateBed: (id: string, patch: Partial<Bed>) => void;
-  removeBed: (id: string) => void;
-  toggleBedStatus: (id: string) => void;
+  addBed: (bed: Omit<Bed, "id">) => Promise<void>;
+  updateBed: (id: string, patch: Partial<Bed>) => Promise<void>;
+  removeBed: (id: string) => Promise<void>;
+  toggleBedStatus: (id: string) => Promise<void>;
   clinic: Clinic;
   updateClinic: (patch: Partial<Clinic>) => Promise<void>;
   isLoadingQueue: boolean;
@@ -98,6 +98,7 @@ function BottomNav() {
 
 export function AppShell() {
   const { currentClinic, setClinic } = useAuth();
+  const queryClient = useQueryClient();
 
   const clinic: Clinic = {
     id: currentClinic?.id ?? "",
@@ -120,38 +121,42 @@ export function AppShell() {
   const visits: Visit[] = (queueData?.visits ?? []).map(mapVisit);
   const beds: Bed[] = (bedsData?.beds ?? []).map(mapBed);
 
-  const [localBeds, setLocalBeds] = useState<Bed[]>([]);
-  const allBeds = beds.length > 0 ? beds : localBeds;
+  const invalidateBeds = () =>
+    queryClient.invalidateQueries({ queryKey: ["beds"] });
 
-  const addBed = (bed: Omit<Bed, "id">) => {
-    const newBed: Bed = { ...bed, id: `b${Date.now()}` };
-    setLocalBeds((current) => [...current, newBed]);
+  // Create a bed on the server, then refetch the list.
+  const addBed = async (bed: Omit<Bed, "id">) => {
+    await bedApi.create(bed.bedNumber, bed.ward);
+    await invalidateBeds();
   };
 
-  const updateBed = (id: string, patch: Partial<Bed>) => {
-    setLocalBeds((current) =>
-      current.map((b) => (b.id === id ? { ...b, ...patch } : b))
-    );
+  // Update a bed (rename, ward, or status) on the server, then refetch.
+  const updateBed = async (id: string, patch: Partial<Bed>) => {
+    await bedApi.update(id, {
+      status: patch.status,
+      patientId: patch.patientId,
+      bedNumber: patch.bedNumber,
+      ward: patch.ward,
+    });
+    await invalidateBeds();
   };
 
-  const removeBed = (id: string) => {
-    setLocalBeds((current) => current.filter((b) => b.id !== id));
+  // Remove a bed on the server, then refetch.
+  const removeBed = async (id: string) => {
+    await bedApi.remove(id);
+    await invalidateBeds();
   };
 
-  const toggleBedStatus = (id: string) => {
-    setLocalBeds((current) =>
-      current.map((b) => {
-        if (b.id !== id) return b;
-        if (b.status === "AVAILABLE") {
-          return { ...b, status: "OCCUPIED", patientName: "New patient", patientId: `p${Date.now()}` };
-        }
-        return { ...b, status: "AVAILABLE", patientName: undefined, patientId: undefined };
-      })
-    );
+  // Flip a bed's status. Reads current status from the live list, sends the
+  // opposite to the server, then refetches.
+  const toggleBedStatus = async (id: string) => {
+    const current = beds.find((b) => b.id === id);
+    if (!current) return;
+    const nextStatus = current.status === "AVAILABLE" ? "OCCUPIED" : "AVAILABLE";
+    await bedApi.update(id, { status: nextStatus });
+    await invalidateBeds();
   };
 
-  // Real persistence: PATCH /api/clinic, then push the saved values back into
-  // auth context so the TopBar header and the Settings form stay in sync.
   const updateClinic = async (patch: Partial<Clinic>) => {
     const { clinic: saved } = await clinicApi.update({
       name: patch.name,
@@ -174,7 +179,7 @@ export function AppShell() {
   const ctx: ClinicContext = {
     visits: allVisits,
     setVisits: setLocalVisits,
-    beds: allBeds,
+    beds,
     addBed, updateBed, removeBed, toggleBedStatus,
     clinic, updateClinic,
     isLoadingQueue,
