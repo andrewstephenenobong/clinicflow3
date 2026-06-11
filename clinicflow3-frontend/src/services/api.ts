@@ -164,6 +164,7 @@ export interface ApiVisit {
   checkedInAt: string;
   calledAt: string | null;
   seenAt: string | null;
+  isCarriedOver?: boolean;
   patient: ApiPatient;
 }
 

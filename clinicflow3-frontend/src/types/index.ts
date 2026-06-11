@@ -17,7 +17,9 @@ export interface Visit {
   triage: Triage;
   status: VisitStatus;
   checkedInAt: string;
+  isCarriedOver?: boolean;
 }
+
 export interface Clinic {
   id: string;
   name: string;
@@ -25,6 +27,7 @@ export interface Clinic {
   phone: string;
   email: string;
 }
+
 export type Role = "ADMIN" | "DOCTOR" | "RECEPTIONIST";
 
 export interface User {

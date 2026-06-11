@@ -46,6 +46,7 @@ function mapVisit(v: ApiVisit): Visit {
     triage: v.triage,
     status: v.status,
     checkedInAt: v.checkedInAt,
+    isCarriedOver: v.isCarriedOver,
   };
 }
 

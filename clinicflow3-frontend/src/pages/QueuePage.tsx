@@ -4,7 +4,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Badge } from "../components/ui/Badge";
 import { queueApi } from "../services/api";
 import { useToast } from "../context/ToastContext";
-import type { Triage, VisitStatus } from "../types";
+import type { Triage, VisitStatus, Visit } from "../types";
 import type { ClinicContext } from "../components/layout/AppShell";
 
 const triageOrder: Record<Triage, number> = {
@@ -23,6 +23,10 @@ function statusVariant(s: VisitStatus) {
 
 function formatTime(iso: string) {
   return new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
+
+function formatDate(iso: string) {
+  return new Date(iso).toLocaleDateString([], { day: "numeric", month: "short" });
 }
 
 export function QueuePage() {
@@ -59,12 +63,14 @@ export function QueuePage() {
     }
   };
 
-  const waiting = visits
-    .filter((v) => v.status === "WAITING")
-    .sort((a, b) => {
-      const t = triageOrder[a.triage] - triageOrder[b.triage];
-      return t !== 0 ? t : a.checkedInAt.localeCompare(b.checkedInAt);
-    });
+  const sortByTriageThenTime = (a: Visit, b: Visit) => {
+    const t = triageOrder[a.triage] - triageOrder[b.triage];
+    return t !== 0 ? t : a.checkedInAt.localeCompare(b.checkedInAt);
+  };
+
+  const allWaiting = visits.filter((v) => v.status === "WAITING");
+  const waitingToday = allWaiting.filter((v) => !v.isCarriedOver).sort(sortByTriageThenTime);
+  const waitingCarried = allWaiting.filter((v) => v.isCarriedOver).sort(sortByTriageThenTime);
 
   const called = visits.filter((v) => v.status === "CALLED");
 
@@ -78,13 +84,57 @@ export function QueuePage() {
     );
   }
 
+  // Shared row renderer for a waiting visit. `offset` keeps the numbering
+  // continuous across the today + carried-over sections.
+  const waitingRow = (visit: Visit, index: number) => (
+    <li
+      key={visit.id}
+      className="flex items-center justify-between px-5 py-4 hover:bg-slate-50 transition-colors"
+    >
+      <div className="flex items-center gap-4">
+        <span className="w-7 h-7 rounded-full bg-slate-100 text-slate-600 text-sm font-semibold flex items-center justify-center">
+          {index + 1}
+        </span>
+        <div>
+          <p className="font-semibold text-slate-900">
+            {visit.patient.name}
+            <span className="ml-2 text-sm font-normal text-slate-500">
+              · {visit.patient.age}{visit.patient.gender}
+            </span>
+          </p>
+          <p className="text-sm text-slate-600 mt-0.5">{visit.reason}</p>
+        </div>
+      </div>
+
+      <div className="flex items-center gap-3">
+        {visit.isCarriedOver && (
+          <span className="text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
+            {formatDate(visit.checkedInAt)}
+          </span>
+        )}
+        <Badge variant={triageVariant(visit.triage)}>{visit.triage}</Badge>
+        <span className="text-xs text-slate-500 w-12 text-right">
+          {formatTime(visit.checkedInAt)}
+        </span>
+        <button
+          onClick={() => callVisit(visit.id)}
+          disabled={actionLoading === visit.id}
+          className="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white px-3 py-1.5 rounded-md text-xs font-semibold"
+        >
+          {actionLoading === visit.id ? "..." : "Call"}
+        </button>
+      </div>
+    </li>
+  );
+
   return (
     <div className="max-w-5xl mx-auto">
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Today's Queue</h1>
           <p className="text-sm text-slate-500 mt-1">
-            {waiting.length} waiting · {called.length} with doctor
+            {waitingToday.length} waiting · {called.length} with doctor
+            {waitingCarried.length > 0 && ` · ${waitingCarried.length} carried over`}
           </p>
         </div>
         <button
@@ -95,6 +145,7 @@ export function QueuePage() {
         </button>
       </div>
 
+      {/* Today's waiting */}
       <div className="bg-white border border-slate-200 rounded-lg overflow-hidden">
         <div className="px-5 py-3 border-b border-slate-200 bg-slate-50">
           <h2 className="text-sm font-semibold text-slate-700 uppercase tracking-wide">
@@ -102,50 +153,33 @@ export function QueuePage() {
           </h2>
         </div>
 
-        {waiting.length === 0 ? (
+        {waitingToday.length === 0 ? (
           <div className="px-5 py-10 text-center text-sm text-slate-400">
             No patients waiting. Quiet moment.
           </div>
         ) : (
           <ul className="divide-y divide-slate-100">
-            {waiting.map((visit, index) => (
-              <li
-                key={visit.id}
-                className="flex items-center justify-between px-5 py-4 hover:bg-slate-50 transition-colors"
-              >
-                <div className="flex items-center gap-4">
-                  <span className="w-7 h-7 rounded-full bg-slate-100 text-slate-600 text-sm font-semibold flex items-center justify-center">
-                    {index + 1}
-                  </span>
-                  <div>
-                    <p className="font-semibold text-slate-900">
-                      {visit.patient.name}
-                      <span className="ml-2 text-sm font-normal text-slate-500">
-                        · {visit.patient.age}{visit.patient.gender}
-                      </span>
-                    </p>
-                    <p className="text-sm text-slate-600 mt-0.5">{visit.reason}</p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-3">
-                  <Badge variant={triageVariant(visit.triage)}>{visit.triage}</Badge>
-                  <span className="text-xs text-slate-500 w-12 text-right">
-                    {formatTime(visit.checkedInAt)}
-                  </span>
-                  <button
-                    onClick={() => callVisit(visit.id)}
-                    disabled={actionLoading === visit.id}
-                    className="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white px-3 py-1.5 rounded-md text-xs font-semibold"
-                  >
-                    {actionLoading === visit.id ? "..." : "Call"}
-                  </button>
-                </div>
-              </li>
-            ))}
+            {waitingToday.map((visit, index) => waitingRow(visit, index))}
           </ul>
         )}
       </div>
+
+      {/* Carried over from previous days */}
+      {waitingCarried.length > 0 && (
+        <div className="mt-6 bg-white border border-amber-200 rounded-lg overflow-hidden">
+          <div className="px-5 py-3 border-b border-amber-200 bg-amber-50">
+            <h2 className="text-sm font-semibold text-amber-800 uppercase tracking-wide">
+              Carried over
+            </h2>
+            <p className="text-xs text-amber-700 mt-0.5">
+              Checked in on a previous day and not yet seen. Call them, or mark seen to clear.
+            </p>
+          </div>
+          <ul className="divide-y divide-slate-100">
+            {waitingCarried.map((visit, index) => waitingRow(visit, index))}
+          </ul>
+        </div>
+      )}
 
       {called.length > 0 && (
         <div className="mt-6 bg-white border border-slate-200 rounded-lg overflow-hidden">

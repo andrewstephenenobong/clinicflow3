@@ -4,19 +4,20 @@ import { Triage, VisitStatus } from "@prisma/client";
 import type { AuthRequest } from "../middleware/auth";
 
 // GET /api/queue/today
+// Returns all OPEN visits (WAITING/CALLED) for the clinic — not just today's.
+// A patient checked in on a previous day and never seen still belongs in the
+// queue (North Star: never lose a check-in). Each visit is tagged with
+// isCarriedOver so the frontend can show today's live arrivals first and
+// previous-day leftovers in a separate "carried over" group below.
 export async function getTodayQueue(req: AuthRequest, res: Response) {
   const clinicId = req.user!.clinicId;
 
-  const startOfDay = new Date();
-  startOfDay.setHours(0, 0, 0, 0);
-
-  const endOfDay = new Date();
-  endOfDay.setHours(23, 59, 59, 999);
+  const startOfToday = new Date();
+  startOfToday.setHours(0, 0, 0, 0);
 
   const visits = await prisma.visit.findMany({
     where: {
       clinicId,
-      checkedInAt: { gte: startOfDay, lte: endOfDay },
       status: { in: [VisitStatus.WAITING, VisitStatus.CALLED] },
     },
     include: {
@@ -26,21 +27,31 @@ export async function getTodayQueue(req: AuthRequest, res: Response) {
         },
       },
     },
-    orderBy: { checkedInAt: "asc" },
   });
 
   const triageOrder: Record<string, number> = {
     EMERGENCY: 0, URGENT: 1, ROUTINE: 2,
   };
 
-  const sorted = [...visits].sort((a, b) => {
+  // Tag each visit as carried-over (checked in before today) or not.
+  const tagged = visits.map((v) => ({
+    ...v,
+    isCarriedOver: new Date(v.checkedInAt) < startOfToday,
+  }));
+
+  // Sort within a group: triage first, then arrival time.
+  const byTriageThenTime = (a: typeof tagged[number], b: typeof tagged[number]) => {
     const tA = triageOrder[a.triage] ?? 2;
     const tB = triageOrder[b.triage] ?? 2;
     if (tA !== tB) return tA - tB;
     return new Date(a.checkedInAt).getTime() - new Date(b.checkedInAt).getTime();
-  });
+  };
 
-  res.json({ visits: sorted });
+  // Today's live arrivals first (sorted), then carried-over leftovers (sorted).
+  const todays = tagged.filter((v) => !v.isCarriedOver).sort(byTriageThenTime);
+  const carried = tagged.filter((v) => v.isCarriedOver).sort(byTriageThenTime);
+
+  res.json({ visits: [...todays, ...carried] });
 }
 
 // POST /api/queue/checkin
