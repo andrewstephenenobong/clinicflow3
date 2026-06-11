@@ -9,10 +9,12 @@ function issueToken(res: Response, payload: object) {
   const expiresIn = (process.env.JWT_EXPIRES_IN ?? "7d") as jwt.SignOptions["expiresIn"];
   const token = jwt.sign(payload, secret, { expiresIn });
 
+  const isProd = process.env.NODE_ENV === "production";
+
   res.cookie("token", token, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
+    secure: isProd,                          // HTTPS-only in production
+    sameSite: isProd ? "none" : "lax",       // cross-site cookie needs None in prod
     maxAge: 7 * 24 * 60 * 60 * 1000,
   });
 }
@@ -176,10 +178,11 @@ export async function me(req: AuthRequest, res: Response) {
 
 // POST /api/auth/logout
 export async function logout(_req: Request, res: Response) {
+  const isProd = process.env.NODE_ENV === "production";
   res.clearCookie("token", {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
+    secure: isProd,
+    sameSite: isProd ? "none" : "lax",
   });
   res.json({ message: "Logged out" });
 }
