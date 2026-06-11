@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useOutletContext } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "../context/AuthContext";
@@ -45,12 +45,42 @@ function ClinicProfileSection({
   clinic: ClinicContext["clinic"];
   onSave: ClinicContext["updateClinic"];
 }) {
+  const { showToast } = useToast();
   const [draft, setDraft] = useState(clinic);
+  const [isSaving, setIsSaving] = useState(false);
+
+  // Keep the form in sync if the clinic loads/changes from context
+  // (e.g. after first rehydrate from /me).
+  useEffect(() => {
+    setDraft(clinic);
+  }, [clinic]);
+
   const dirty =
     draft.name !== clinic.name ||
     draft.address !== clinic.address ||
     draft.phone !== clinic.phone ||
     draft.email !== clinic.email;
+
+  const handleSave = async () => {
+    if (!draft.name.trim()) {
+      showToast("Clinic name cannot be empty", "error");
+      return;
+    }
+    setIsSaving(true);
+    try {
+      await onSave({
+        name: draft.name,
+        address: draft.address,
+        phone: draft.phone,
+        email: draft.email,
+      });
+      showToast("Clinic profile saved");
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : "Failed to save clinic profile", "error");
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   const field = (label: string, key: keyof typeof draft, type = "text") => (
     <div>
@@ -83,29 +113,23 @@ function ClinicProfileSection({
           {field("Email", "email", "email")}
         </div>
       </div>
-      <div className="px-5 py-3 border-t border-slate-200 bg-slate-50">
-        <p className="text-xs text-slate-500 mb-3">
-          Changes apply to this session and update the header right away. Permanent
-          saving to your account is coming soon.
-        </p>
-        <div className="flex justify-end gap-2">
-          <button
-            onClick={() => setDraft(clinic)}
-            disabled={!dirty}
-            className="px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100
-                       rounded-md disabled:text-slate-400 disabled:hover:bg-transparent"
-          >
-            Reset
-          </button>
-          <button
-            onClick={() => onSave(draft)}
-            disabled={!dirty}
-            className="px-4 py-2 text-sm font-semibold text-white bg-blue-600
-                       hover:bg-blue-700 rounded-md disabled:bg-slate-300 disabled:cursor-not-allowed"
-          >
-            Apply changes
-          </button>
-        </div>
+      <div className="px-5 py-3 border-t border-slate-200 bg-slate-50 flex justify-end gap-2">
+        <button
+          onClick={() => setDraft(clinic)}
+          disabled={!dirty || isSaving}
+          className="px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100
+                     rounded-md disabled:text-slate-400 disabled:hover:bg-transparent"
+        >
+          Reset
+        </button>
+        <button
+          onClick={handleSave}
+          disabled={!dirty || isSaving}
+          className="px-4 py-2 text-sm font-semibold text-white bg-blue-600
+                     hover:bg-blue-700 rounded-md disabled:bg-slate-300 disabled:cursor-not-allowed"
+        >
+          {isSaving ? "Saving..." : "Save changes"}
+        </button>
       </div>
     </section>
   );

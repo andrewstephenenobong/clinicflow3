@@ -88,6 +88,7 @@ export const patientApi = {
       body: JSON.stringify({ name, age, gender, phone }),
     }),
 };
+
 // ── Staff ──
 export const staffApi = {
   getAll: () =>
@@ -104,6 +105,16 @@ export const staffApi = {
       method: "DELETE",
     }),
 };
+
+// ── Clinic ──
+export const clinicApi = {
+  update: (data: { name?: string; address?: string; phone?: string; email?: string }) =>
+    request<{ clinic: ApiClinic }>("/api/clinic", {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    }),
+};
+
 // ── Dashboard ──
 export const dashboardApi = {
   getStats: () =>
@@ -129,6 +140,9 @@ export interface ApiUser {
 export interface ApiClinic {
   id: string;
   name: string;
+  address?: string | null;
+  phone?: string | null;
+  email?: string | null;
 }
 
 export interface ApiPatient {

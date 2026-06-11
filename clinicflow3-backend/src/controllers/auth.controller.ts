@@ -78,6 +78,9 @@ export async function register(req: Request, res: Response) {
     clinic: {
       id: clinic.id,
       name: clinic.name,
+      address: clinic.address,
+      phone: clinic.phone,
+      email: clinic.email,
     },
   });
 }
@@ -129,6 +132,9 @@ export async function login(req: Request, res: Response) {
     clinic: {
       id: user.clinic.id,
       name: user.clinic.name,
+      address: user.clinic.address,
+      phone: user.clinic.phone,
+      email: user.clinic.email,
     },
   });
 }
@@ -161,6 +167,9 @@ export async function me(req: AuthRequest, res: Response) {
     clinic: {
       id: user.clinic.id,
       name: user.clinic.name,
+      address: user.clinic.address,
+      phone: user.clinic.phone,
+      email: user.clinic.email,
     },
   });
 }

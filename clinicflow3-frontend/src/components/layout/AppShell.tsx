@@ -5,7 +5,7 @@ import { NavLink } from "react-router-dom";
 import { Sidebar } from "./Sidebar";
 import { TopBar } from "./TopBar";
 import { useAuth } from "../../context/AuthContext";
-import { queueApi, bedApi } from "../../services/api";
+import { queueApi, bedApi, clinicApi } from "../../services/api";
 import type { ApiVisit, ApiBed } from "../../services/api";
 import type { Clinic, Visit } from "../../types";
 
@@ -27,7 +27,7 @@ export interface ClinicContext {
   removeBed: (id: string) => void;
   toggleBedStatus: (id: string) => void;
   clinic: Clinic;
-  updateClinic: (patch: Partial<Clinic>) => void;
+  updateClinic: (patch: Partial<Clinic>) => Promise<void>;
   isLoadingQueue: boolean;
   isLoadingBeds: boolean;
 }
@@ -96,18 +96,15 @@ function BottomNav() {
 }
 
 export function AppShell() {
-  const { currentClinic } = useAuth();
-  const [clinicOverride, setClinicOverride] = useState<Partial<Clinic>>({});
+  const { currentClinic, setClinic } = useAuth();
 
   const clinic: Clinic = {
     id: currentClinic?.id ?? "",
     name: currentClinic?.name ?? "Loading...",
-    address: "",
-    phone: "",
-    email: "",
+    address: currentClinic?.address ?? "",
+    phone: currentClinic?.phone ?? "",
+    email: currentClinic?.email ?? "",
   };
-
-  const mergedClinic: Clinic = { ...clinic, ...clinicOverride };
 
   const { data: queueData, isLoading: isLoadingQueue } = useQuery({
     queryKey: ["queue", "today"],
@@ -152,8 +149,22 @@ export function AppShell() {
     );
   };
 
-  const updateClinic = (patch: Partial<Clinic>) => {
-    setClinicOverride((current) => ({ ...current, ...patch }));
+  // Real persistence: PATCH /api/clinic, then push the saved values back into
+  // auth context so the TopBar header and the Settings form stay in sync.
+  const updateClinic = async (patch: Partial<Clinic>) => {
+    const { clinic: saved } = await clinicApi.update({
+      name: patch.name,
+      address: patch.address,
+      phone: patch.phone,
+      email: patch.email,
+    });
+    setClinic({
+      id: saved.id,
+      name: saved.name,
+      address: saved.address ?? "",
+      phone: saved.phone ?? "",
+      email: saved.email ?? "",
+    });
   };
 
   const [localVisits, setLocalVisits] = useState<Visit[]>([]);
@@ -164,7 +175,7 @@ export function AppShell() {
     setVisits: setLocalVisits,
     beds: allBeds,
     addBed, updateBed, removeBed, toggleBedStatus,
-    clinic: mergedClinic, updateClinic,
+    clinic, updateClinic,
     isLoadingQueue,
     isLoadingBeds,
   };
@@ -177,7 +188,7 @@ export function AppShell() {
       </div>
 
       <div className="flex-1 flex flex-col min-w-0">
-        <TopBar clinic={mergedClinic} />
+        <TopBar clinic={clinic} />
         <main className="flex-1 p-4 md:p-6 overflow-auto pb-20 md:pb-6">
           <Outlet context={ctx} />
         </main>

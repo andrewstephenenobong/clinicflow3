@@ -8,6 +8,7 @@ import bedRoutes from "./routes/bed.routes";
 import patientRoutes from "./routes/patient.routes";
 import staffRoutes from "./routes/staff.routes";
 import dashboardRoutes from "./routes/dashboard.routes";
+import clinicRoutes from "./routes/clinic.routes";
 dotenv.config();
 
 const app = express();
@@ -34,6 +35,7 @@ app.use("/api/beds", bedRoutes);
 app.use("/api/patients", patientRoutes);
 app.use("/api/staff", staffRoutes);
 app.use("/api/dashboard", dashboardRoutes);
+app.use("/api/clinic", clinicRoutes);
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => {
   console.log(`ClinicFlow backend running on http://localhost:${PORT}`);
