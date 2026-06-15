@@ -27,8 +27,10 @@ export async function getPatient(req: AuthRequest, res: Response) {
   const clinicId = req.user!.clinicId;
   const patientId = req.params.id as string;
 
-  const patient = await prisma.patient.findUnique({
-    where: { id: patientId },
+  // findFirst with both id AND clinicId: the query itself cannot return
+  // another clinic's patient. No fetch-then-check; the scoping is in the DB.
+  const patient = await prisma.patient.findFirst({
+    where: { id: patientId, clinicId },
     include: {
       visits: {
         where: { clinicId },
@@ -46,7 +48,7 @@ export async function getPatient(req: AuthRequest, res: Response) {
     },
   });
 
-  if (!patient || patient.clinicId !== clinicId) {
+  if (!patient) {
     res.status(404).json({ error: "Patient not found" });
     return;
   }

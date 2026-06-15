@@ -64,11 +64,12 @@ export async function updateBed(req: AuthRequest, res: Response) {
   const bedId = req.params.id as string;
   const { status, patientId, bedNumber, ward } = req.body;
 
-  const bed = await prisma.bed.findUnique({
-    where: { id: bedId },
+  // Scoped fetch: cannot return another clinic's bed.
+  const bed = await prisma.bed.findFirst({
+    where: { id: bedId, clinicId },
   });
 
-  if (!bed || bed.clinicId !== clinicId) {
+  if (!bed) {
     res.status(404).json({ error: "Bed not found" });
     return;
   }
@@ -87,7 +88,6 @@ export async function updateBed(req: AuthRequest, res: Response) {
   const updated = await prisma.bed.update({
     where: { id: bedId },
     data: {
-      // status only changes if provided; otherwise keep current
       status: status !== undefined ? (status as BedStatus) : bed.status,
       patientId:
         status === BedStatus.AVAILABLE
@@ -113,11 +113,12 @@ export async function removeBed(req: AuthRequest, res: Response) {
   const clinicId = req.user!.clinicId;
   const bedId = req.params.id as string;
 
-  const bed = await prisma.bed.findUnique({
-    where: { id: bedId },
+  // Scoped fetch: cannot return another clinic's bed.
+  const bed = await prisma.bed.findFirst({
+    where: { id: bedId, clinicId },
   });
 
-  if (!bed || bed.clinicId !== clinicId) {
+  if (!bed) {
     res.status(404).json({ error: "Bed not found" });
     return;
   }

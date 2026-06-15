@@ -96,11 +96,12 @@ export async function callPatient(req: AuthRequest, res: Response) {
   const clinicId = req.user!.clinicId;
   const visitId = req.params.id as string;
 
-  const visit = await prisma.visit.findUnique({
-    where: { id: visitId },
+  // Scoped fetch: cannot return another clinic's visit.
+  const visit = await prisma.visit.findFirst({
+    where: { id: visitId, clinicId },
   });
 
-  if (!visit || visit.clinicId !== clinicId) {
+  if (!visit) {
     res.status(404).json({ error: "Visit not found" });
     return;
   }
@@ -127,11 +128,12 @@ export async function markSeen(req: AuthRequest, res: Response) {
   const visitId = req.params.id as string;
   const { notes } = req.body;
 
-  const visit = await prisma.visit.findUnique({
-    where: { id: visitId },
+  // Scoped fetch: cannot return another clinic's visit.
+  const visit = await prisma.visit.findFirst({
+    where: { id: visitId, clinicId },
   });
 
-  if (!visit || visit.clinicId !== clinicId) {
+  if (!visit) {
     res.status(404).json({ error: "Visit not found" });
     return;
   }
