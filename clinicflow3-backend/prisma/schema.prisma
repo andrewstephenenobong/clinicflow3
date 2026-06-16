@@ -128,16 +128,17 @@ model Visit {
 }
 
 model Bed {
-  id        String    @id @default(uuid(7))
-  clinicId  String
-  bedNumber String
-  ward      String
-  status    BedStatus @default(AVAILABLE)
-  patientId String?
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  clinic    Clinic    @relation(fields: [clinicId], references: [id], onDelete: Cascade)
-  patient   Patient?  @relation(fields: [patientId], references: [id], onDelete: SetNull)
+  id         String    @id @default(uuid(7))
+  clinicId   String
+  bedNumber  String
+  ward       String
+  status     BedStatus @default(AVAILABLE)
+  patientId  String?
+  admittedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  clinic     Clinic    @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  patient    Patient?  @relation(fields: [patientId], references: [id], onDelete: SetNull)
   @@unique([clinicId, bedNumber])
   @@index([clinicId])
   @@index([clinicId, ward])

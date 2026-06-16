@@ -67,16 +67,30 @@ export const bedApi = {
   getAll: () =>
     request<{ beds: ApiBed[] }>("/api/beds"),
 
+  assignable: () =>
+    request<{ patients: ApiPatient[] }>("/api/beds/assignable"),
+
+  admitted: () =>
+    request<{ beds: ApiAdmittedBed[] }>("/api/beds/admitted"),
+
   create: (bedNumber: string, ward: string) =>
     request<{ bed: ApiBed }>("/api/beds", {
       method: "POST",
       body: JSON.stringify({ bedNumber, ward }),
     }),
 
-  update: (
-    bedId: string,
-    data: { status?: string; patientId?: string; bedNumber?: string; ward?: string }
-  ) =>
+  assign: (bedId: string, patientId: string) =>
+    request<{ bed: ApiBed }>(`/api/beds/${bedId}/assign`, {
+      method: "PATCH",
+      body: JSON.stringify({ patientId }),
+    }),
+
+  discharge: (bedId: string) =>
+    request<{ bed: ApiBed }>(`/api/beds/${bedId}/discharge`, {
+      method: "PATCH",
+    }),
+
+  update: (bedId: string, data: { bedNumber?: string; ward?: string }) =>
     request<{ bed: ApiBed }>(`/api/beds/${bedId}`, {
       method: "PATCH",
       body: JSON.stringify(data),
@@ -190,6 +204,20 @@ export interface ApiBed {
   status: "AVAILABLE" | "OCCUPIED";
   patientId: string | null;
   patient: { id: string; name: string } | null;
+}
+
+export interface ApiAdmittedBed {
+  id: string;
+  bedNumber: string;
+  ward: string;
+  admittedAt: string | null;
+  patient: {
+    id: string;
+    name: string;
+    age: number;
+    gender: string;
+    phone: string | null;
+  } | null;
 }
 
 export interface ApiStaff {

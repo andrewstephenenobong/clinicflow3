@@ -23,9 +23,10 @@ export interface ClinicContext {
   setVisits: React.Dispatch<React.SetStateAction<Visit[]>>;
   beds: Bed[];
   addBed: (bed: Omit<Bed, "id">) => Promise<void>;
-  updateBed: (id: string, patch: Partial<Bed>) => Promise<void>;
+  updateBed: (id: string, patch: { bedNumber?: string; ward?: string }) => Promise<void>;
   removeBed: (id: string) => Promise<void>;
-  toggleBedStatus: (id: string) => Promise<void>;
+  assignBed: (bedId: string, patientId: string) => Promise<void>;
+  dischargeBed: (bedId: string) => Promise<void>;
   clinic: Clinic;
   updateClinic: (patch: Partial<Clinic>) => Promise<void>;
   isLoadingQueue: boolean;
@@ -71,6 +72,7 @@ function BottomNav() {
     { to: "/queue", label: "Queue", icon: "🏥" },
     { to: "/patients", label: "Patients", icon: "👥" },
     { to: "/beds", label: "Beds", icon: "🛏" },
+    { to: "/admitted", label: "Admitted", icon: "📋" },
     { to: "/settings", label: "Settings", icon: "⚙️" },
   ];
 
@@ -130,14 +132,9 @@ export function AppShell() {
     await invalidateBeds();
   };
 
-  // Update a bed (rename, ward, or status) on the server, then refetch.
-  const updateBed = async (id: string, patch: Partial<Bed>) => {
-    await bedApi.update(id, {
-      status: patch.status,
-      patientId: patch.patientId,
-      bedNumber: patch.bedNumber,
-      ward: patch.ward,
-    });
+  // Edit a bed's number/ward (not admission — that goes through assign/discharge).
+  const updateBed = async (id: string, patch: { bedNumber?: string; ward?: string }) => {
+    await bedApi.update(id, { bedNumber: patch.bedNumber, ward: patch.ward });
     await invalidateBeds();
   };
 
@@ -147,13 +144,15 @@ export function AppShell() {
     await invalidateBeds();
   };
 
-  // Flip a bed's status. Reads current status from the live list, sends the
-  // opposite to the server, then refetches.
-  const toggleBedStatus = async (id: string) => {
-    const current = beds.find((b) => b.id === id);
-    if (!current) return;
-    const nextStatus = current.status === "AVAILABLE" ? "OCCUPIED" : "AVAILABLE";
-    await bedApi.update(id, { status: nextStatus });
+  // Admit a patient to a bed (sets admittedAt server-side), then refetch.
+  const assignBed = async (bedId: string, patientId: string) => {
+    await bedApi.assign(bedId, patientId);
+    await invalidateBeds();
+  };
+
+  // Discharge a patient from a bed (clears admittedAt server-side), then refetch.
+  const dischargeBed = async (bedId: string) => {
+    await bedApi.discharge(bedId);
     await invalidateBeds();
   };
 
@@ -180,7 +179,7 @@ export function AppShell() {
     visits: allVisits,
     setVisits: setLocalVisits,
     beds,
-    addBed, updateBed, removeBed, toggleBedStatus,
+    addBed, updateBed, removeBed, assignBed, dischargeBed,
     clinic, updateClinic,
     isLoadingQueue,
     isLoadingBeds,

@@ -10,6 +10,7 @@ export function Sidebar() {
     { to: "/queue", label: "Queue" },
     { to: "/patients", label: "Patients" },
     { to: "/beds", label: "Beds" },
+    { to: "/admitted", label: "Admitted" },
     { to: "/settings", label: "Settings" },
   ];
 

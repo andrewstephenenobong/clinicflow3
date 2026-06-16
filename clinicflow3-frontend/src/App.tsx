@@ -7,8 +7,10 @@ import { RegisterPage } from "./pages/RegisterPage";
 import { QueuePage } from "./pages/QueuePage";
 import { PatientsPage } from "./pages/PatientsPage";
 import { BedsPage } from "./pages/BedsPage";
+import { AdmittedPage } from "./pages/AdmittedPage";
 import { SettingsPage } from "./pages/SettingsPage";
 import { DashboardPage } from "./pages/DashboardPage";
+
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { currentUser, isLoading } = useAuth();
   if (isLoading) return null;
@@ -36,6 +38,7 @@ function App() {
               <Route path="queue" element={<QueuePage />} />
               <Route path="patients" element={<PatientsPage />} />
               <Route path="beds" element={<BedsPage />} />
+              <Route path="admitted" element={<AdmittedPage />} />
               <Route path="settings" element={<SettingsPage />} />
               <Route path="dashboard" element={<DashboardPage />} />
             </Route>
