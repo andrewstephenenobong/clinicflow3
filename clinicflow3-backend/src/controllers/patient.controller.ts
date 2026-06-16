@@ -27,8 +27,6 @@ export async function getPatient(req: AuthRequest, res: Response) {
   const clinicId = req.user!.clinicId;
   const patientId = req.params.id as string;
 
-  // findFirst with both id AND clinicId: the query itself cannot return
-  // another clinic's patient. No fetch-then-check; the scoping is in the DB.
   const patient = await prisma.patient.findFirst({
     where: { id: patientId, clinicId },
     include: {
@@ -77,4 +75,42 @@ export async function createPatient(req: AuthRequest, res: Response) {
   });
 
   res.status(201).json({ patient });
+}
+
+// PATCH /api/patients/:id
+// Edit a patient's clinical/contact details. Only a whitelisted set of fields
+// can be changed — never id or clinicId. D6-safe: findFirst scoped by clinicId.
+export async function updatePatient(req: AuthRequest, res: Response) {
+  const clinicId = req.user!.clinicId;
+  const patientId = req.params.id as string;
+  const { phone, address, nextOfKin, bloodGroup, allergies, chronicConditions } = req.body;
+
+  // Confirm the patient belongs to this clinic before touching anything.
+  const existing = await prisma.patient.findFirst({
+    where: { id: patientId, clinicId },
+  });
+
+  if (!existing) {
+    res.status(404).json({ error: "Patient not found" });
+    return;
+  }
+
+  // Build update from only the fields that were actually provided.
+  // Empty string is treated as "clear the field" (-> null).
+  const clean = (v: unknown) =>
+    v === undefined ? undefined : v === "" ? null : String(v).trim();
+
+  const patient = await prisma.patient.update({
+    where: { id: patientId },
+    data: {
+      phone: clean(phone),
+      address: clean(address),
+      nextOfKin: clean(nextOfKin),
+      bloodGroup: clean(bloodGroup),
+      allergies: clean(allergies),
+      chronicConditions: clean(chronicConditions),
+    },
+  });
+
+  res.json({ patient });
 }
