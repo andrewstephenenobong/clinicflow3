@@ -60,6 +60,7 @@ model Clinic {
   visits               Visit[]
   beds                 Bed[]
   auditLogs            AuditLog[]
+  admissions           Admission[]
 }
 
 model User {
@@ -98,6 +99,7 @@ model Patient {
   clinic            Clinic   @relation(fields: [clinicId], references: [id], onDelete: Cascade)
   visits            Visit[]
   beds              Bed[]
+  admissions        Admission[]
   @@index([clinicId])
   @@index([clinicId, name])
 }
@@ -139,9 +141,33 @@ model Bed {
   updatedAt  DateTime  @updatedAt
   clinic     Clinic    @relation(fields: [clinicId], references: [id], onDelete: Cascade)
   patient    Patient?  @relation(fields: [patientId], references: [id], onDelete: SetNull)
+  admissions Admission[]
   @@unique([clinicId, bedNumber])
   @@index([clinicId])
   @@index([clinicId, ward])
+}
+model Admission {
+  id                 String    @id @default(uuid(7))
+  clinicId           String
+  patientId          String
+  bedId              String?
+  bedNumber          String
+  ward               String
+  admittedAt         DateTime  @default(now())
+  admittedByUserId   String?
+  admissionNote      String?
+  dischargedAt       DateTime?
+  dischargedByUserId String?
+  dischargeNote      String?
+  createdAt          DateTime  @default(now())
+
+  clinic  Clinic   @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  patient Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  bed     Bed?     @relation(fields: [bedId], references: [id], onDelete: SetNull)
+
+  @@index([clinicId])
+  @@index([clinicId, patientId])
+  @@index([clinicId, dischargedAt])
 }
 
 model AuditLog {

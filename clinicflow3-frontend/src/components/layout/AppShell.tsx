@@ -25,8 +25,8 @@ export interface ClinicContext {
   addBed: (bed: Omit<Bed, "id">) => Promise<void>;
   updateBed: (id: string, patch: { bedNumber?: string; ward?: string }) => Promise<void>;
   removeBed: (id: string) => Promise<void>;
-  assignBed: (bedId: string, patientId: string) => Promise<void>;
-  dischargeBed: (bedId: string) => Promise<void>;
+  assignBed: (bedId: string, patientId: string, admissionNote?: string) => Promise<void>;
+  dischargeBed: (bedId: string, dischargeNote?: string) => Promise<void>;
   clinic: Clinic;
   updateClinic: (patch: Partial<Clinic>) => Promise<void>;
   isLoadingQueue: boolean;
@@ -144,15 +144,15 @@ export function AppShell() {
     await invalidateBeds();
   };
 
-  // Admit a patient to a bed (sets admittedAt server-side), then refetch.
-  const assignBed = async (bedId: string, patientId: string) => {
-    await bedApi.assign(bedId, patientId);
+  // Admit a patient to a bed (opens an admission record server-side), then refetch.
+  const assignBed = async (bedId: string, patientId: string, admissionNote?: string) => {
+    await bedApi.assign(bedId, patientId, admissionNote);
     await invalidateBeds();
   };
 
-  // Discharge a patient from a bed (clears admittedAt server-side), then refetch.
-  const dischargeBed = async (bedId: string) => {
-    await bedApi.discharge(bedId);
+  // Discharge a patient (closes the admission record server-side), then refetch.
+  const dischargeBed = async (bedId: string, dischargeNote?: string) => {
+    await bedApi.discharge(bedId, dischargeNote);
     await invalidateBeds();
   };
 

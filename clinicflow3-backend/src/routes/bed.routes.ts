@@ -6,6 +6,7 @@ import {
   createBed,
   assignBed,
   dischargeBed,
+  patientAdmissions,
   updateBed,
   removeBed,
 } from "../controllers/bed.controller";
@@ -13,12 +14,13 @@ import { requireAuth } from "../middleware/auth";
 
 const router = Router();
 
-router.use(requireAuth); // all bed routes require auth
+router.use(requireAuth);
 
 // Read
 router.get("/", getBeds);
 router.get("/assignable", assignablePatients);
 router.get("/admitted", admittedPatients);
+router.get("/admissions/:patientId", patientAdmissions);
 
 // Create / edit / remove
 router.post("/", createBed);

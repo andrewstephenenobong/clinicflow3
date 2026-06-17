@@ -73,21 +73,25 @@ export const bedApi = {
   admitted: () =>
     request<{ beds: ApiAdmittedBed[] }>("/api/beds/admitted"),
 
+  admissions: (patientId: string) =>
+    request<{ admissions: ApiAdmission[] }>(`/api/beds/admissions/${patientId}`),
+
   create: (bedNumber: string, ward: string) =>
     request<{ bed: ApiBed }>("/api/beds", {
       method: "POST",
       body: JSON.stringify({ bedNumber, ward }),
     }),
 
-  assign: (bedId: string, patientId: string) =>
+  assign: (bedId: string, patientId: string, admissionNote?: string) =>
     request<{ bed: ApiBed }>(`/api/beds/${bedId}/assign`, {
       method: "PATCH",
-      body: JSON.stringify({ patientId }),
+      body: JSON.stringify({ patientId, admissionNote }),
     }),
 
-  discharge: (bedId: string) =>
+  discharge: (bedId: string, dischargeNote?: string) =>
     request<{ bed: ApiBed }>(`/api/beds/${bedId}/discharge`, {
       method: "PATCH",
+      body: JSON.stringify({ dischargeNote }),
     }),
 
   update: (bedId: string, data: { bedNumber?: string; ward?: string }) =>
@@ -234,6 +238,18 @@ export interface ApiAdmittedBed {
     gender: string;
     phone: string | null;
   } | null;
+}
+
+export interface ApiAdmission {
+  id: string;
+  bedNumber: string;
+  ward: string;
+  admittedAt: string;
+  admittedByUserId: string | null;
+  admissionNote: string | null;
+  dischargedAt: string | null;
+  dischargedByUserId: string | null;
+  dischargeNote: string | null;
 }
 
 export interface ApiStaff {

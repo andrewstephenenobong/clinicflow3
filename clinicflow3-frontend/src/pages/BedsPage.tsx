@@ -5,7 +5,6 @@ import type { ClinicContext, Bed } from "../components/layout/AppShell";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
 import { bedApi } from "../services/api";
-import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 
 function bedStyles(status: Bed["status"]) {
   return status === "AVAILABLE"
@@ -18,7 +17,6 @@ export function BedsPage() {
   const { currentUser } = useAuth();
   const { showToast } = useToast();
 
-  // Only doctors and admins can admit/discharge (clinical action).
   const canManage = currentUser?.role === "ADMIN" || currentUser?.role === "DOCTOR";
 
   const [assignTarget, setAssignTarget] = useState<Bed | null>(null);
@@ -33,23 +31,11 @@ export function BedsPage() {
   const occupied = beds.length - available;
 
   const handleBedClick = (bed: Bed) => {
-    if (!canManage) return; // receptionists view only
+    if (!canManage) return;
     if (bed.status === "AVAILABLE") {
       setAssignTarget(bed);
     } else {
       setDischargeTarget(bed);
-    }
-  };
-
-  const confirmDischarge = async () => {
-    if (!dischargeTarget) return;
-    const bed = dischargeTarget;
-    setDischargeTarget(null);
-    try {
-      await dischargeBed(bed.id);
-      showToast(`Discharged from bed ${bed.bedNumber}`);
-    } catch (err) {
-      showToast(err instanceof Error ? err.message : "Failed to discharge", "error");
     }
   };
 
@@ -125,16 +111,15 @@ export function BedsPage() {
           : "Bed assignment is managed by doctors and admins."}
       </p>
 
-      {/* Assign dialog */}
       {assignTarget && (
         <AssignDialog
           bed={assignTarget}
           onClose={() => setAssignTarget(null)}
-          onAssign={async (patientId) => {
+          onAssign={async (patientId, note) => {
             const bed = assignTarget;
             setAssignTarget(null);
             try {
-              await assignBed(bed.id, patientId);
+              await assignBed(bed.id, patientId, note);
               showToast(`Admitted to bed ${bed.bedNumber}`);
             } catch (err) {
               showToast(err instanceof Error ? err.message : "Failed to admit", "error");
@@ -143,20 +128,22 @@ export function BedsPage() {
         />
       )}
 
-      {/* Discharge confirm */}
-      <ConfirmDialog
-        open={dischargeTarget !== null}
-        title="Discharge patient"
-        message={
-          dischargeTarget
-            ? `Discharge ${dischargeTarget.patientName ?? "this patient"} from bed ${dischargeTarget.bedNumber}? The bed will become available.`
-            : ""
-        }
-        confirmLabel="Discharge"
-        danger
-        onConfirm={confirmDischarge}
-        onCancel={() => setDischargeTarget(null)}
-      />
+      {dischargeTarget && (
+        <DischargeDialog
+          bed={dischargeTarget}
+          onClose={() => setDischargeTarget(null)}
+          onDischarge={async (note) => {
+            const bed = dischargeTarget;
+            setDischargeTarget(null);
+            try {
+              await dischargeBed(bed.id, note);
+              showToast(`Discharged from bed ${bed.bedNumber}`);
+            } catch (err) {
+              showToast(err instanceof Error ? err.message : "Failed to discharge", "error");
+            }
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -166,7 +153,7 @@ export function BedsPage() {
 interface AssignDialogProps {
   bed: Bed;
   onClose: () => void;
-  onAssign: (patientId: string) => void;
+  onAssign: (patientId: string, note?: string) => void;
 }
 
 function AssignDialog({ bed, onClose, onAssign }: AssignDialogProps) {
@@ -174,6 +161,9 @@ function AssignDialog({ bed, onClose, onAssign }: AssignDialogProps) {
     queryKey: ["beds", "assignable"],
     queryFn: () => bedApi.assignable(),
   });
+
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [note, setNote] = useState("");
 
   const patients = data?.patients ?? [];
 
@@ -195,21 +185,23 @@ function AssignDialog({ bed, onClose, onAssign }: AssignDialogProps) {
           </p>
         </div>
 
-        <div className="px-6 py-4 max-h-80 overflow-y-auto">
+        <div className="px-6 py-4 max-h-72 overflow-y-auto">
           {isLoading ? (
             <p className="text-sm text-slate-400 text-center py-6">Loading patients…</p>
           ) : patients.length === 0 ? (
             <p className="text-sm text-slate-400 text-center py-6">
               No patients are ready to admit. A patient must be marked “seen” first,
-              and not already in a bed.
+              and not already admitted.
             </p>
           ) : (
             <ul className="divide-y divide-slate-100">
               {patients.map((p) => (
                 <li key={p.id}>
                   <button
-                    onClick={() => onAssign(p.id)}
-                    className="w-full flex items-center justify-between px-2 py-3 hover:bg-slate-50 rounded-md text-left transition-colors"
+                    onClick={() => setSelectedId(p.id)}
+                    className={`w-full flex items-center justify-between px-2 py-3 rounded-md text-left transition-colors ${
+                      selectedId === p.id ? "bg-blue-50 ring-1 ring-blue-300" : "hover:bg-slate-50"
+                    }`}
                   >
                     <div>
                       <p className="text-sm font-semibold text-slate-900">{p.name}</p>
@@ -217,7 +209,9 @@ function AssignDialog({ bed, onClose, onAssign }: AssignDialogProps) {
                         {p.age}{p.gender}{p.phone ? ` · ${p.phone}` : ""}
                       </p>
                     </div>
-                    <span className="text-xs font-semibold text-blue-600">Admit →</span>
+                    {selectedId === p.id && (
+                      <span className="text-xs font-semibold text-blue-600">Selected</span>
+                    )}
                   </button>
                 </li>
               ))}
@@ -225,12 +219,96 @@ function AssignDialog({ bed, onClose, onAssign }: AssignDialogProps) {
           )}
         </div>
 
-        <div className="px-6 py-4 border-t border-slate-200 bg-slate-50 flex justify-end rounded-b-lg">
+        {patients.length > 0 && (
+          <div className="px-6 pb-4">
+            <label className="block text-xs font-medium text-slate-700 mb-1">
+              Admission note (optional)
+            </label>
+            <textarea
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              rows={2}
+              placeholder="e.g. Admitted for observation overnight"
+              className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+        )}
+
+        <div className="px-6 py-4 border-t border-slate-200 bg-slate-50 flex justify-end gap-2 rounded-b-lg">
           <button
             onClick={onClose}
             className="px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100 rounded-md"
           >
             Cancel
+          </button>
+          <button
+            onClick={() => selectedId && onAssign(selectedId, note.trim() || undefined)}
+            disabled={!selectedId}
+            className="px-4 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-md disabled:bg-slate-300 disabled:cursor-not-allowed"
+          >
+            Admit patient
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Discharge dialog ─────────────────────────────────────────────────────────
+
+interface DischargeDialogProps {
+  bed: Bed;
+  onClose: () => void;
+  onDischarge: (note?: string) => void;
+}
+
+function DischargeDialog({ bed, onClose, onDischarge }: DischargeDialogProps) {
+  const [note, setNote] = useState("");
+
+  return (
+    <div
+      className="fixed inset-0 bg-slate-900/50 flex items-center justify-center z-50 p-4"
+      onClick={onClose}
+    >
+      <div
+        className="bg-white rounded-lg shadow-xl w-full max-w-md"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="px-6 py-4 border-b border-slate-200">
+          <h2 className="text-lg font-semibold text-slate-900">
+            Discharge from bed {bed.bedNumber}
+          </h2>
+          <p className="text-xs text-slate-500 mt-0.5">
+            {bed.patientName ?? "This patient"} · {bed.ward} ward. The bed will become available.
+          </p>
+        </div>
+
+        <div className="px-6 py-4">
+          <label className="block text-xs font-medium text-slate-700 mb-1">
+            Condition / discharge notes (optional)
+          </label>
+          <textarea
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            rows={3}
+            placeholder="e.g. Stable, advised to rest and return if symptoms persist"
+            className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            autoFocus
+          />
+        </div>
+
+        <div className="px-6 py-4 border-t border-slate-200 bg-slate-50 flex justify-end gap-2 rounded-b-lg">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100 rounded-md"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={() => onDischarge(note.trim() || undefined)}
+            className="px-4 py-2 text-sm font-semibold text-white bg-rose-600 hover:bg-rose-700 rounded-md"
+          >
+            Discharge
           </button>
         </div>
       </div>

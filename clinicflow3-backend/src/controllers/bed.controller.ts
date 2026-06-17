@@ -10,9 +10,7 @@ export async function getBeds(req: AuthRequest, res: Response) {
   const beds = await prisma.bed.findMany({
     where: { clinicId },
     include: {
-      patient: {
-        select: { id: true, name: true },
-      },
+      patient: { select: { id: true, name: true } },
     },
     orderBy: [{ ward: "asc" }, { bedNumber: "asc" }],
   });
@@ -21,33 +19,20 @@ export async function getBeds(req: AuthRequest, res: Response) {
 }
 
 // GET /api/beds/assignable
-// Patients eligible to be admitted to a bed: have been SEEN at least once,
-// and are not currently occupying any bed in this clinic.
+// Patients eligible to be admitted: have a SEEN visit, and have NO open
+// admission (no admission row with dischargedAt = null). A discharged patient
+// is therefore NOT assignable again until a fresh check-in -> seen cycle.
 export async function assignablePatients(req: AuthRequest, res: Response) {
   const clinicId = req.user!.clinicId;
 
-  // Ids of patients currently in a bed (so we can exclude them).
-  const occupiedBeds = await prisma.bed.findMany({
-    where: { clinicId, patientId: { not: null } },
-    select: { patientId: true },
-  });
-  const occupiedPatientIds = occupiedBeds
-    .map((b) => b.patientId)
-    .filter((id): id is string => id !== null);
-
-  // Patients in this clinic with at least one SEEN visit, not already in a bed.
   const patients = await prisma.patient.findMany({
     where: {
       clinicId,
-      id: { notIn: occupiedPatientIds },
       visits: { some: { clinicId, status: "SEEN" } },
+      admissions: { none: { dischargedAt: null } },
     },
     select: {
-      id: true,
-      name: true,
-      age: true,
-      gender: true,
-      phone: true,
+      id: true, name: true, age: true, gender: true, phone: true,
     },
     orderBy: { name: "asc" },
   });
@@ -56,8 +41,7 @@ export async function assignablePatients(req: AuthRequest, res: Response) {
 }
 
 // GET /api/beds/admitted
-// Everyone currently occupying a bed, with admission time, for the ward-round
-// monitoring view.
+// Everyone currently occupying a bed, with admission time, for the ward round.
 export async function admittedPatients(req: AuthRequest, res: Response) {
   const clinicId = req.user!.clinicId;
 
@@ -100,28 +84,23 @@ export async function createBed(req: AuthRequest, res: Response) {
       ward: String(ward).trim(),
       status: BedStatus.AVAILABLE,
     },
-    include: {
-      patient: {
-        select: { id: true, name: true },
-      },
-    },
+    include: { patient: { select: { id: true, name: true } } },
   });
 
   res.status(201).json({ bed });
 }
 
 // PATCH /api/beds/:id/assign
-// Admit a patient to a bed. ADMIN/DOCTOR only. Sets admittedAt.
+// Admit a patient. ADMIN/DOCTOR only. Sets bed state AND opens an Admission row.
 export async function assignBed(req: AuthRequest, res: Response) {
   const clinicId = req.user!.clinicId;
   const bedId = req.params.id as string;
-  const { patientId } = req.body;
+  const { patientId, admissionNote } = req.body;
 
   if (req.user!.role !== "ADMIN" && req.user!.role !== "DOCTOR") {
     res.status(403).json({ error: "Only doctors and admins can assign beds" });
     return;
   }
-
   if (!patientId) {
     res.status(400).json({ error: "patientId is required" });
     return;
@@ -137,7 +116,6 @@ export async function assignBed(req: AuthRequest, res: Response) {
     return;
   }
 
-  // Confirm the patient belongs to this clinic (multi-tenancy, D6).
   const patient = await prisma.patient.findFirst({
     where: { id: patientId, clinicId },
   });
@@ -146,26 +124,38 @@ export async function assignBed(req: AuthRequest, res: Response) {
     return;
   }
 
-  const updated = await prisma.bed.update({
-    where: { id: bedId },
-    data: {
-      status: BedStatus.OCCUPIED,
-      patientId,
-      admittedAt: new Date(),
-    },
-    include: {
-      patient: { select: { id: true, name: true } },
-    },
-  });
+  const now = new Date();
+
+  // Update bed AND open an admission record together, so they can't drift apart.
+  const [updated] = await prisma.$transaction([
+    prisma.bed.update({
+      where: { id: bedId },
+      data: { status: BedStatus.OCCUPIED, patientId, admittedAt: now },
+      include: { patient: { select: { id: true, name: true } } },
+    }),
+    prisma.admission.create({
+      data: {
+        clinicId,
+        patientId,
+        bedId: bed.id,
+        bedNumber: bed.bedNumber,
+        ward: bed.ward,
+        admittedAt: now,
+        admittedByUserId: req.user!.userId,
+        admissionNote: admissionNote ? String(admissionNote).trim() : null,
+      },
+    }),
+  ]);
 
   res.json({ bed: updated });
 }
 
 // PATCH /api/beds/:id/discharge
-// Discharge the patient from a bed. ADMIN/DOCTOR only. Clears admittedAt.
+// Discharge. ADMIN/DOCTOR only. Clears the bed AND closes the open Admission row.
 export async function dischargeBed(req: AuthRequest, res: Response) {
   const clinicId = req.user!.clinicId;
   const bedId = req.params.id as string;
+  const { dischargeNote } = req.body;
 
   if (req.user!.role !== "ADMIN" && req.user!.role !== "DOCTOR") {
     res.status(403).json({ error: "Only doctors and admins can discharge patients" });
@@ -178,24 +168,65 @@ export async function dischargeBed(req: AuthRequest, res: Response) {
     return;
   }
 
-  const updated = await prisma.bed.update({
-    where: { id: bedId },
-    data: {
-      status: BedStatus.AVAILABLE,
-      patientId: null,
-      admittedAt: null,
-    },
-    include: {
-      patient: { select: { id: true, name: true } },
-    },
-  });
+  const now = new Date();
+
+  // Find the open admission for the patient currently in this bed (if any).
+  const openAdmission = bed.patientId
+    ? await prisma.admission.findFirst({
+        where: { clinicId, patientId: bed.patientId, bedId: bed.id, dischargedAt: null },
+        orderBy: { admittedAt: "desc" },
+      })
+    : null;
+
+  const ops: any[] = [
+    prisma.bed.update({
+      where: { id: bedId },
+      data: { status: BedStatus.AVAILABLE, patientId: null, admittedAt: null },
+      include: { patient: { select: { id: true, name: true } } },
+    }),
+  ];
+
+  if (openAdmission) {
+    ops.push(
+      prisma.admission.update({
+        where: { id: openAdmission.id },
+        data: {
+          dischargedAt: now,
+          dischargedByUserId: req.user!.userId,
+          dischargeNote: dischargeNote ? String(dischargeNote).trim() : null,
+        },
+      })
+    );
+  }
+
+  const [updated] = await prisma.$transaction(ops);
 
   res.json({ bed: updated });
 }
 
-// PATCH /api/beds/:id
-// Edit bed number / ward (not admission). Status changes here are kept for the
-// simple toggle on the Beds page, but admission proper goes through /assign.
+// GET /api/patients/:id/admissions  (mounted under beds router as /admissions/:patientId)
+// Admission history for one patient, newest first.
+export async function patientAdmissions(req: AuthRequest, res: Response) {
+  const clinicId = req.user!.clinicId;
+  const patientId = req.params.patientId as string;
+
+  const patient = await prisma.patient.findFirst({
+    where: { id: patientId, clinicId },
+  });
+  if (!patient) {
+    res.status(404).json({ error: "Patient not found" });
+    return;
+  }
+
+  const admissions = await prisma.admission.findMany({
+    where: { clinicId, patientId },
+    orderBy: { admittedAt: "desc" },
+  });
+
+  res.json({ admissions });
+}
+
+// PATCH /api/beds/:id  — edit bed number / ward only
 export async function updateBed(req: AuthRequest, res: Response) {
   const clinicId = req.user!.clinicId;
   const bedId = req.params.id as string;
@@ -223,9 +254,7 @@ export async function updateBed(req: AuthRequest, res: Response) {
       bedNumber: bedNumber !== undefined ? String(bedNumber).trim() : bed.bedNumber,
       ward: ward !== undefined ? String(ward).trim() : bed.ward,
     },
-    include: {
-      patient: { select: { id: true, name: true } },
-    },
+    include: { patient: { select: { id: true, name: true } } },
   });
 
   res.json({ bed: updated });
@@ -243,6 +272,5 @@ export async function removeBed(req: AuthRequest, res: Response) {
   }
 
   await prisma.bed.delete({ where: { id: bedId } });
-
   res.json({ message: "Bed removed" });
 }
