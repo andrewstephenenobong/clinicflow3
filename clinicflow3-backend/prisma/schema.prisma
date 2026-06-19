@@ -124,6 +124,7 @@ model Visit {
   patient      Patient     @relation(fields: [patientId], references: [id], onDelete: Cascade)
   clinic       Clinic      @relation(fields: [clinicId], references: [id], onDelete: Cascade)
   seenBy       User?       @relation("SeenByUser", fields: [seenByUserId], references: [id], onDelete: SetNull)
+  admissions   Admission[]
   @@index([clinicId, status])
   @@index([clinicId, checkedInAt])
   @@index([patientId])
@@ -146,10 +147,12 @@ model Bed {
   @@index([clinicId])
   @@index([clinicId, ward])
 }
+
 model Admission {
   id                 String    @id @default(uuid(7))
   clinicId           String
   patientId          String
+  visitId            String?
   bedId              String?
   bedNumber          String
   ward               String
@@ -164,6 +167,7 @@ model Admission {
   clinic  Clinic   @relation(fields: [clinicId], references: [id], onDelete: Cascade)
   patient Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
   bed     Bed?     @relation(fields: [bedId], references: [id], onDelete: SetNull)
+  visit   Visit?   @relation(fields: [visitId], references: [id], onDelete: SetNull)
 
   @@index([clinicId])
   @@index([clinicId, patientId])

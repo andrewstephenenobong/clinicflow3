@@ -19,17 +19,31 @@ export async function getBeds(req: AuthRequest, res: Response) {
 }
 
 // GET /api/beds/assignable
-// Patients eligible to be admitted: have a SEEN visit, and have NO open
-// admission (no admission row with dischargedAt = null). A discharged patient
-// is therefore NOT assignable again until a fresh check-in -> seen cycle.
+// A patient is assignable only if they have a SEEN visit that has NOT already
+// been consumed by an admission. Every admission permanently "uses up" the
+// visit that led to it (Admission.visitId). So once a patient is admitted —
+// and even after they are discharged — that SEEN visit is spent, and they are
+// not assignable again until a FRESH check-in -> seen produces a new, unconsumed
+// SEEN visit. This is what makes discharge final.
 export async function assignablePatients(req: AuthRequest, res: Response) {
   const clinicId = req.user!.clinicId;
 
+  // Every visitId already consumed by an admission in this clinic.
+  const consumed = await prisma.admission.findMany({
+    where: { clinicId, visitId: { not: null } },
+    select: { visitId: true },
+  });
+  const consumedVisitIds = consumed
+    .map((a) => a.visitId)
+    .filter((id): id is string => id !== null);
+
+  // Patients who have at least one SEEN visit whose id is NOT consumed.
   const patients = await prisma.patient.findMany({
     where: {
       clinicId,
-      visits: { some: { clinicId, status: "SEEN" } },
-      admissions: { none: { dischargedAt: null } },
+      visits: {
+        some: { clinicId, status: "SEEN", id: { notIn: consumedVisitIds } },
+      },
     },
     select: {
       id: true, name: true, age: true, gender: true, phone: true,
@@ -91,7 +105,8 @@ export async function createBed(req: AuthRequest, res: Response) {
 }
 
 // PATCH /api/beds/:id/assign
-// Admit a patient. ADMIN/DOCTOR only. Sets bed state AND opens an Admission row.
+// Admit a patient. ADMIN/DOCTOR only. Sets bed state AND opens an Admission row,
+// recording which SEEN visit this admission consumes.
 export async function assignBed(req: AuthRequest, res: Response) {
   const clinicId = req.user!.clinicId;
   const bedId = req.params.id as string;
@@ -124,9 +139,46 @@ export async function assignBed(req: AuthRequest, res: Response) {
     return;
   }
 
+  // Guard against double-admission: a patient with an OPEN admission cannot be
+  // admitted to another bed. Enforced on the action, not just the list.
+  const existingOpen = await prisma.admission.findFirst({
+    where: { clinicId, patientId, dischargedAt: null },
+  });
+  if (existingOpen) {
+    res.status(409).json({
+      error: `${patient.name} is already admitted to bed ${existingOpen.bedNumber}. Discharge them first.`,
+    });
+    return;
+  }
+
+  // Find a SEEN visit that has NOT already been consumed by an admission. This
+  // is the visit this admission will "use up". If there is none, the patient is
+  // not eligible — they need a fresh check-in -> seen cycle. (Belt-and-suspenders:
+  // the assignable list already enforces this, but the action guards itself too.)
+  const consumed = await prisma.admission.findMany({
+    where: { clinicId, patientId, visitId: { not: null } },
+    select: { visitId: true },
+  });
+  const consumedVisitIds = consumed
+    .map((a) => a.visitId)
+    .filter((id): id is string => id !== null);
+
+  const eligibleVisit = await prisma.visit.findFirst({
+    where: { clinicId, patientId, status: "SEEN", id: { notIn: consumedVisitIds } },
+    orderBy: { seenAt: "desc" },
+  });
+
+  if (!eligibleVisit) {
+    res.status(409).json({
+      error: `${patient.name} must be checked in and seen by a doctor before being admitted again.`,
+    });
+    return;
+  }
+
   const now = new Date();
 
   // Update bed AND open an admission record together, so they can't drift apart.
+  // The admission records the visit it consumes.
   const [updated] = await prisma.$transaction([
     prisma.bed.update({
       where: { id: bedId },
@@ -137,6 +189,7 @@ export async function assignBed(req: AuthRequest, res: Response) {
       data: {
         clinicId,
         patientId,
+        visitId: eligibleVisit.id,
         bedId: bed.id,
         bedNumber: bed.bedNumber,
         ward: bed.ward,
