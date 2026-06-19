@@ -84,8 +84,8 @@ export function QueuePage() {
     );
   }
 
-  // Shared row renderer for a waiting visit. `offset` keeps the numbering
-  // continuous across the today + carried-over sections.
+  // Shared row renderer for a waiting visit. `index` keeps the numbering
+  // continuous within each section.
   const waitingRow = (visit: Visit, index: number) => (
     <li
       key={visit.id}
@@ -241,7 +241,12 @@ function CheckInDialog({ onClose, onSuccess }: CheckInDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
 
-  const canSubmit = name.trim() && age.trim() && reason.trim();
+  // Age must be a whole number between 1 and 120. This guards against
+  // negative, zero, decimal, or absurd ages reaching the record.
+  const ageNum = Number(age);
+  const ageValid =
+    age.trim() !== "" && Number.isInteger(ageNum) && ageNum >= 1 && ageNum <= 120;
+  const canSubmit = name.trim() && ageValid && reason.trim();
 
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
@@ -303,11 +308,21 @@ function CheckInDialog({ onClose, onSuccess }: CheckInDialogProps) {
               <label className="block text-sm font-medium text-slate-700 mb-1">Age</label>
               <input
                 type="number"
+                inputMode="numeric"
+                min={1}
+                max={120}
                 value={age}
-                onChange={(e) => setAge(e.target.value)}
+                onChange={(e) => {
+                  // Strip anything that isn't a digit (blocks "-", ".", "e", etc.)
+                  const digitsOnly = e.target.value.replace(/[^0-9]/g, "");
+                  setAge(digitsOnly);
+                }}
                 placeholder="34"
                 className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
+              {age.trim() !== "" && !ageValid && (
+                <p className="text-xs text-red-600 mt-1">Enter an age between 1 and 120.</p>
+              )}
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Gender</label>
