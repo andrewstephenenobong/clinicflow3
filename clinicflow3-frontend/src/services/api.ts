@@ -114,10 +114,15 @@ export const patientApi = {
   getOne: (patientId: string) =>
     request<{ patient: ApiPatientDetail }>(`/api/patients/${patientId}`),
 
-  create: (name: string, age: number, gender: string, phone?: string) =>
+  // Live search by name — used at check-in to find returning patients.
+  search: (q: string) =>
+    request<{ patients: ApiPatient[] }>(`/api/patients/search?q=${encodeURIComponent(q)}`),
+
+  // dateOfBirth replaces age — backend computes and stores age from it.
+  create: (name: string, dateOfBirth: string, gender: string, phone?: string) =>
     request<{ patient: ApiPatient }>("/api/patients", {
       method: "POST",
-      body: JSON.stringify({ name, age, gender, phone }),
+      body: JSON.stringify({ name, dateOfBirth, gender, phone }),
     }),
 
   update: (
@@ -197,8 +202,33 @@ export interface ApiPatient {
   id: string;
   name: string;
   age: number;
+  dateOfBirth: string | null;
   gender: string;
   phone: string | null;
+}
+
+export interface ApiPatientDetail {
+  id: string;
+  name: string;
+  age: number;
+  dateOfBirth: string | null;
+  gender: string;
+  phone: string | null;
+  address: string | null;
+  nextOfKin: string | null;
+  bloodGroup: string | null;
+  allergies: string | null;
+  chronicConditions: string | null;
+  createdAt: string;
+  visits: {
+    id: string;
+    reason: string;
+    triage: "EMERGENCY" | "URGENT" | "ROUTINE";
+    status: "WAITING" | "CALLED" | "SEEN";
+    notes: string | null;
+    checkedInAt: string;
+    seenAt: string | null;
+  }[];
 }
 
 export interface ApiVisit {
@@ -259,27 +289,4 @@ export interface ApiStaff {
   role: string;
   status: string;
   createdAt: string;
-}
-
-export interface ApiPatientDetail {
-  id: string;
-  name: string;
-  age: number;
-  gender: string;
-  phone: string | null;
-  address: string | null;
-  nextOfKin: string | null;
-  bloodGroup: string | null;
-  allergies: string | null;
-  chronicConditions: string | null;
-  createdAt: string;
-  visits: {
-    id: string;
-    reason: string;
-    triage: "EMERGENCY" | "URGENT" | "ROUTINE";
-    status: "WAITING" | "CALLED" | "SEEN";
-    notes: string | null;
-    checkedInAt: string;
-    seenAt: string | null;
-  }[];
 }

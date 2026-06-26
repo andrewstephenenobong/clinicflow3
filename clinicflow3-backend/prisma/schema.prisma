@@ -87,6 +87,7 @@ model Patient {
   clinicId          String
   name              String
   age               Int
+  dateOfBirth       DateTime?
   gender            String
   phone             String?
   address           String?
@@ -102,6 +103,7 @@ model Patient {
   admissions        Admission[]
   @@index([clinicId])
   @@index([clinicId, name])
+  @@index([clinicId, dateOfBirth])
 }
 
 model Visit {

@@ -1,5 +1,6 @@
 import { Router } from "express";
 import {
+  searchPatients,
   getPatients,
   getPatient,
   createPatient,
@@ -12,6 +13,7 @@ const router = Router();
 router.use(requireAuth);
 
 router.get("/", getPatients);
+router.get("/search", searchPatients); // MUST be before /:id
 router.get("/:id", getPatient);
 router.post("/", createPatient);
 router.patch("/:id", updatePatient);
