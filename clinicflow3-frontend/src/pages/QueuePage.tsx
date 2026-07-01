@@ -37,6 +37,30 @@ function formatDOB(dob: string | null): string {
   });
 }
 
+/** Returns waiting minutes from checkedInAt ISO string */
+function waitingMinutes(checkedInAt: string): number {
+  return Math.floor((Date.now() - new Date(checkedInAt).getTime()) / 60000);
+}
+
+/** Color-coded pill based on wait time */
+function WaitBadge({ checkedInAt }: { checkedInAt: string }) {
+  const min = waitingMinutes(checkedInAt);
+  const label = min < 1 ? "< 1 min" : min < 60 ? `${min} min` : `${Math.floor(min / 60)}h ${min % 60}m`;
+  const cls =
+    min >= 60
+      ? "bg-red-100 text-red-700 border border-red-200"
+      : min >= 30
+      ? "bg-orange-100 text-orange-700 border border-orange-200"
+      : min >= 15
+      ? "bg-amber-100 text-amber-700 border border-amber-200"
+      : "bg-emerald-100 text-emerald-700 border border-emerald-200";
+  return (
+    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${cls}`}>
+      ⏱ {label}
+    </span>
+  );
+}
+
 export function QueuePage() {
   const { visits, isLoadingQueue } = useOutletContext<ClinicContext>();
   const queryClient = useQueryClient();
@@ -51,7 +75,7 @@ export function QueuePage() {
       await queueApi.call(id);
       queryClient.invalidateQueries({ queryKey: ["queue", "today"] });
       showToast("Patient called to doctor");
-    } catch (err) {
+    } catch {
       showToast("Failed to call patient", "error");
     } finally {
       setActionLoading(null);
@@ -64,7 +88,7 @@ export function QueuePage() {
       await queueApi.markSeen(id);
       queryClient.invalidateQueries({ queryKey: ["queue", "today"] });
       showToast("Patient marked as seen");
-    } catch (err) {
+    } catch {
       showToast("Failed to mark patient as seen", "error");
     } finally {
       setActionLoading(null);
@@ -91,46 +115,62 @@ export function QueuePage() {
     );
   }
 
-  const waitingRow = (visit: Visit, index: number) => (
-    <li
-      key={visit.id}
-      className="flex items-center justify-between px-5 py-4 hover:bg-slate-50 transition-colors"
-    >
-      <div className="flex items-center gap-4">
-        <span className="w-7 h-7 rounded-full bg-slate-100 text-slate-600 text-sm font-semibold flex items-center justify-center">
+  const waitingRow = (visit: Visit, index: number) => {
+    const isEmergency = visit.triage === "EMERGENCY";
+    return (
+      <li
+        key={visit.id}
+        className={`flex items-start gap-4 px-5 py-4 hover:bg-slate-50 transition-colors ${
+          isEmergency ? "bg-red-50/60 hover:bg-red-50" : ""
+        }`}
+      >
+        {/* Position number */}
+        <span
+          className={`mt-0.5 w-7 h-7 rounded-full text-sm font-bold flex items-center justify-center flex-shrink-0 ${
+            isEmergency ? "bg-red-100 text-red-700" : "bg-slate-100 text-slate-600"
+          }`}
+        >
           {index + 1}
         </span>
-        <div>
-          <p className="font-semibold text-slate-900">
-            {visit.patient.name}
-            <span className="ml-2 text-sm font-normal text-slate-500">
-              · {visit.patient.age}{visit.patient.gender}
-            </span>
-          </p>
-          <p className="text-sm text-slate-600 mt-0.5">{visit.reason}</p>
-        </div>
-      </div>
 
-      <div className="flex items-center gap-3">
-        {visit.isCarriedOver && (
-          <span className="text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
-            {formatDate(visit.checkedInAt)}
-          </span>
-        )}
-        <Badge variant={triageVariant(visit.triage)}>{visit.triage}</Badge>
-        <span className="text-xs text-slate-500 w-12 text-right">
-          {formatTime(visit.checkedInAt)}
-        </span>
+        {/* Info */}
+        <div className="flex-1 min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="font-semibold text-slate-900">{visit.patient.name}</p>
+            <span className="text-xs text-slate-500">
+              {visit.patient.age}{visit.patient.gender}
+            </span>
+            <Badge variant={triageVariant(visit.triage)}>{visit.triage}</Badge>
+            {visit.isCarriedOver && (
+              <span className="text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
+                {formatDate(visit.checkedInAt)}
+              </span>
+            )}
+          </div>
+          <p className="text-sm text-slate-600 mt-0.5 truncate">{visit.reason}</p>
+          <div className="flex items-center gap-3 mt-1.5">
+            <WaitBadge checkedInAt={visit.checkedInAt} />
+            <span className="text-xs text-slate-400">
+              Checked in {formatTime(visit.checkedInAt)}
+            </span>
+          </div>
+        </div>
+
+        {/* Action */}
         <button
           onClick={() => callVisit(visit.id)}
           disabled={actionLoading === visit.id}
-          className="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white px-3 py-1.5 rounded-md text-xs font-semibold"
+          className={`flex-shrink-0 px-3 py-1.5 rounded-md text-xs font-semibold transition-colors ${
+            isEmergency
+              ? "bg-red-600 hover:bg-red-700 disabled:bg-red-400 text-white"
+              : "bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white"
+          }`}
         >
-          {actionLoading === visit.id ? "..." : "Call"}
+          {actionLoading === visit.id ? "..." : "Call →"}
         </button>
-      </div>
-    </li>
-  );
+      </li>
+    );
+  };
 
   return (
     <div className="max-w-5xl mx-auto">
@@ -150,16 +190,25 @@ export function QueuePage() {
         </button>
       </div>
 
-      {/* Today's waiting */}
+      {/* Emergency summary bar */}
+      {waitingToday.filter((v) => v.triage === "EMERGENCY").length > 0 && (
+        <div className="mb-4 bg-red-50 border border-red-300 rounded-lg px-4 py-3 flex items-center gap-3">
+          <span className="text-xl animate-pulse">🚨</span>
+          <p className="text-sm font-semibold text-red-800">
+            {waitingToday.filter((v) => v.triage === "EMERGENCY").length} emergency patient(s) waiting — prioritise immediately
+          </p>
+        </div>
+      )}
+
+      {/* Waiting today */}
       <div className="bg-white border border-slate-200 rounded-lg overflow-hidden">
-        <div className="px-5 py-3 border-b border-slate-200 bg-slate-50">
-          <h2 className="text-sm font-semibold text-slate-700 uppercase tracking-wide">
-            Waiting
-          </h2>
+        <div className="px-5 py-3 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
+          <h2 className="text-sm font-semibold text-slate-700 uppercase tracking-wide">Waiting</h2>
+          <span className="text-xs text-slate-500">{waitingToday.length} patients</span>
         </div>
         {waitingToday.length === 0 ? (
           <div className="px-5 py-10 text-center text-sm text-slate-400">
-            No patients waiting. Quiet moment.
+            No patients waiting. Quiet moment. 🌿
           </div>
         ) : (
           <ul className="divide-y divide-slate-100">
@@ -172,9 +221,7 @@ export function QueuePage() {
       {waitingCarried.length > 0 && (
         <div className="mt-6 bg-white border border-amber-200 rounded-lg overflow-hidden">
           <div className="px-5 py-3 border-b border-amber-200 bg-amber-50">
-            <h2 className="text-sm font-semibold text-amber-800 uppercase tracking-wide">
-              Carried over
-            </h2>
+            <h2 className="text-sm font-semibold text-amber-800 uppercase tracking-wide">Carried over</h2>
             <p className="text-xs text-amber-700 mt-0.5">
               Checked in on a previous day and not yet seen. Call them, or mark seen to clear.
             </p>
@@ -189,27 +236,29 @@ export function QueuePage() {
       {called.length > 0 && (
         <div className="mt-6 bg-white border border-slate-200 rounded-lg overflow-hidden">
           <div className="px-5 py-3 border-b border-slate-200 bg-slate-50">
-            <h2 className="text-sm font-semibold text-slate-700 uppercase tracking-wide">
-              With doctor
-            </h2>
+            <h2 className="text-sm font-semibold text-slate-700 uppercase tracking-wide">With doctor</h2>
           </div>
           <ul className="divide-y divide-slate-100">
             {called.map((visit) => (
-              <li key={visit.id} className="flex items-center justify-between px-5 py-4">
-                <div>
-                  <p className="font-semibold text-slate-900">{visit.patient.name}</p>
+              <li key={visit.id} className="flex items-start gap-4 px-5 py-4">
+                <div className="flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="font-semibold text-slate-900">{visit.patient.name}</p>
+                    <span className="text-xs text-slate-500">{visit.patient.age}{visit.patient.gender}</span>
+                    <Badge variant={statusVariant(visit.status)}>{visit.status}</Badge>
+                  </div>
                   <p className="text-sm text-slate-600 mt-0.5">{visit.reason}</p>
+                  <div className="mt-1.5">
+                    <WaitBadge checkedInAt={visit.checkedInAt} />
+                  </div>
                 </div>
-                <div className="flex items-center gap-3">
-                  <Badge variant={statusVariant(visit.status)}>{visit.status}</Badge>
-                  <button
-                    onClick={() => markSeen(visit.id)}
-                    disabled={actionLoading === visit.id}
-                    className="bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-400 text-white px-3 py-1.5 rounded-md text-xs font-semibold"
-                  >
-                    {actionLoading === visit.id ? "..." : "Mark seen"}
-                  </button>
-                </div>
+                <button
+                  onClick={() => markSeen(visit.id)}
+                  disabled={actionLoading === visit.id}
+                  className="flex-shrink-0 bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-400 text-white px-3 py-1.5 rounded-md text-xs font-semibold"
+                >
+                  {actionLoading === visit.id ? "..." : "Mark seen"}
+                </button>
               </li>
             ))}
           </ul>
@@ -238,29 +287,23 @@ interface CheckInDialogProps {
 }
 
 function CheckInDialog({ onClose, onSuccess }: CheckInDialogProps) {
-  // Name + live search state
   const [name, setName] = useState("");
   const [searchResults, setSearchResults] = useState<ApiPatient[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
 
-  // Identity decision: either an existing patient is selected, or we're creating new
   const [selectedPatient, setSelectedPatient] = useState<ApiPatient | null>(null);
   const [isNewPatient, setIsNewPatient] = useState(false);
 
-  // New patient fields
   const [dateOfBirth, setDateOfBirth] = useState("");
   const [gender, setGender] = useState<"M" | "F">("F");
 
-  // Visit fields (shared for both paths)
   const [reason, setReason] = useState("");
   const [triage, setTriage] = useState<Triage>("ROUTINE");
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
 
-  // Live search: fires 300ms after the receptionist stops typing (min 2 chars).
-  // Skips if we've already picked a patient or decided to create new.
   useEffect(() => {
     if (selectedPatient || isNewPatient) return;
     if (name.trim().length < 2) {
@@ -286,7 +329,6 @@ function CheckInDialog({ onClose, onSuccess }: CheckInDialogProps) {
     return () => clearTimeout(timer);
   }, [name, selectedPatient, isNewPatient]);
 
-  // Reset back to search mode (e.g. after picking the wrong patient)
   const resetIdentity = () => {
     setSelectedPatient(null);
     setIsNewPatient(false);
@@ -295,13 +337,11 @@ function CheckInDialog({ onClose, onSuccess }: CheckInDialogProps) {
     setName("");
   };
 
-  // Pick an existing returning patient
   const selectExisting = (patient: ApiPatient) => {
     setSelectedPatient(patient);
     setShowDropdown(false);
   };
 
-  // Decide to create a new patient instead
   const chooseNew = () => {
     setIsNewPatient(true);
     setShowDropdown(false);
@@ -311,15 +351,12 @@ function CheckInDialog({ onClose, onSuccess }: CheckInDialogProps) {
     const val = e.target.value;
     const capitalised = val.replace(/(?:^|\s)\S/g, (c) => c.toUpperCase());
     setName(capitalised);
-    // If they edit the name after picking a patient, reset the decision
     if (selectedPatient || isNewPatient) {
       setSelectedPatient(null);
       setIsNewPatient(false);
     }
   };
 
-  // Submit: path A (existing patient) skips create entirely.
-  // Path B (new patient) creates first, then checks in.
   const canSubmit = (() => {
     if (!reason.trim()) return false;
     if (selectedPatient) return true;
@@ -336,10 +373,8 @@ function CheckInDialog({ onClose, onSuccess }: CheckInDialogProps) {
       let patientId: string;
 
       if (selectedPatient) {
-        // Returning patient — no create needed, history stays intact
         patientId = selectedPatient.id;
       } else {
-        // New patient — create with DOB, backend computes age
         const { patient } = await patientApi.create(name.trim(), dateOfBirth, gender);
         patientId = patient.id;
       }
@@ -371,9 +406,7 @@ function CheckInDialog({ onClose, onSuccess }: CheckInDialogProps) {
 
         <div className="px-6 py-5 space-y-4">
 
-          {/* ── Identity section ── */}
           {selectedPatient ? (
-            // Existing patient confirmed — show read-only details as confirmation
             <div className="bg-blue-50 border border-blue-200 rounded-md px-4 py-3">
               <div className="flex items-start justify-between">
                 <div>
@@ -400,7 +433,6 @@ function CheckInDialog({ onClose, onSuccess }: CheckInDialogProps) {
               </p>
             </div>
           ) : (
-            // Name search field + dropdown
             <div className="relative">
               <label className="block text-sm font-medium text-slate-700 mb-1">
                 Patient name
@@ -414,12 +446,10 @@ function CheckInDialog({ onClose, onSuccess }: CheckInDialogProps) {
                 autoFocus
               />
 
-              {/* Search indicator */}
               {isSearching && (
                 <p className="text-xs text-slate-400 mt-1">Searching…</p>
               )}
 
-              {/* Results dropdown */}
               {showDropdown && !isNewPatient && (
                 <div className="absolute z-10 left-0 right-0 mt-1 bg-white border border-slate-200 rounded-md shadow-lg max-h-52 overflow-y-auto">
                   {searchResults.length > 0 && searchResults.map((p) => (
@@ -444,7 +474,6 @@ function CheckInDialog({ onClose, onSuccess }: CheckInDialogProps) {
                     </button>
                   ))}
 
-                  {/* Always show "create new" option at the bottom */}
                   <button
                     onClick={chooseNew}
                     className="w-full flex items-center gap-2 px-4 py-3 hover:bg-slate-50 text-left text-sm font-semibold text-slate-600 border-t border-slate-200"
@@ -457,7 +486,6 @@ function CheckInDialog({ onClose, onSuccess }: CheckInDialogProps) {
             </div>
           )}
 
-          {/* ── New patient fields (only when creating new) ── */}
           {isNewPatient && (
             <>
               <div className="flex items-center justify-between">
@@ -502,7 +530,6 @@ function CheckInDialog({ onClose, onSuccess }: CheckInDialogProps) {
             </>
           )}
 
-          {/* ── Visit fields — shown once identity is decided ── */}
           {(selectedPatient || isNewPatient) && (
             <>
               <div>
@@ -537,6 +564,8 @@ function CheckInDialog({ onClose, onSuccess }: CheckInDialogProps) {
                           : "bg-white text-slate-500 border-slate-200 hover:border-slate-300"
                       }`}
                     >
+                      {level === "EMERGENCY" && "🚨 "}
+                      {level === "URGENT" && "⚠️ "}
                       {level}
                     </button>
                   ))}
@@ -545,7 +574,6 @@ function CheckInDialog({ onClose, onSuccess }: CheckInDialogProps) {
             </>
           )}
 
-          {/* ── Hint when nothing picked yet ── */}
           {!selectedPatient && !isNewPatient && name.trim().length < 2 && (
             <p className="text-xs text-slate-400 text-center py-2">
               Type at least 2 characters to search existing patients.

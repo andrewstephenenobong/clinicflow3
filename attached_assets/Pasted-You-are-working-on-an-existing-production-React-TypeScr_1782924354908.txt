@@ -1,0 +1,195 @@
+You are working on an existing production React + TypeScript + Vite + Tailwind frontend for a hospital management system called ClinicFlow.
+
+This is a FRONTEND-ONLY TASK.
+
+You must NOT modify, remove, refactor, or interfere with any backend logic, API structure, database calls, or server configuration.
+
+You are ONLY allowed to:
+
+Improve UI/UX
+Refactor frontend components safely
+Fix frontend bugs
+Improve layout, readability, and usability
+Ensure responsiveness and performance
+
+If any change requires backend modification, STOP and leave a comment instead.
+
+CRITICAL SAFETY RULES
+Do not change API endpoints in /services/api.ts
+Do not modify backend controllers or assumptions
+Do not remove existing features
+Do not break current pages or routes
+Do not rename backend response fields
+Do not change authentication logic
+Do not introduce new backend dependencies
+Do not assume missing backend data exists
+Do not delete unused code without confirming usage first
+FIRST STEP (MANDATORY BEFORE ANY UI CHANGE)
+Scan entire frontend project structure
+Identify reusable components
+Identify API dependency points in:
+services/api.ts
+context/AuthContext.tsx
+pages/*
+Check for:
+broken imports
+unused props
+inconsistent types
+UI duplication
+Fix ONLY frontend-safe bugs
+MAIN UI/UX IMPROVEMENTS
+1. Reception Dashboard Redesign
+
+Refactor DashboardPage.tsx into a structured hospital control layout:
+
+Top section: Primary action area (Add Patient button)
+Middle section: Live “Waiting Patients” queue
+Bottom section: “Today’s Statistics”
+
+The layout should feel like an operational control center, not a generic admin dashboard.
+
+No backend changes. Use existing API data only.
+
+2. Universal Search System
+
+Implement a frontend global search component:
+
+Search patients
+Search phone numbers
+Search patient IDs
+Search admissions
+Search visits
+
+Must use existing API endpoints only.
+
+Add debounce for performance.
+
+3. Patient Card Redesign
+
+Update patient UI cards to display:
+
+Full name
+Gender
+Age
+Masked phone number
+Key medical flags (allergies, conditions)
+
+Critical information must be visible without opening profile pages.
+
+Do not change backend data structure.
+
+4. Patient Profile Safety Banner
+
+Inside patient detail pages:
+
+If medical flags exist, show a sticky top banner:
+
+Allergies
+Chronic conditions
+Emergency notes
+
+Must remain visible while scrolling.
+
+Frontend-only implementation.
+
+5. Queue System UI Upgrade
+
+Redesign queue cards to include:
+
+Patient name
+Age and gender
+Reason for visit
+Waiting time
+Priority level
+
+Emergency cases must be visually distinct.
+
+6. Queue Aging Indicators
+
+Add color-coded waiting time logic:
+
+0–15 min: Green
+15–30 min: Yellow
+30–60 min: Orange
+60+ min: Red
+
+This is UI-only logic based on frontend calculation.
+
+7. Staff Department UI Expansion
+
+Extend staff UI to support departments:
+
+Doctor
+Nurse
+Receptionist
+Security
+IT
+Maintenance
+Sanitation
+Accountant
+Customer Service
+
+This is display-only UI grouping. Do not modify backend roles.
+
+8. SOS Emergency Button (UI ONLY)
+
+Add SOS button on dashboard.
+
+This is UI placeholder only. No backend integration required.
+
+9. Patient Portal Layout (READ-ONLY UI PREP)
+
+Create patient-facing UI structure:
+
+Medical history view
+Prescriptions view
+Assigned doctor info
+Read-only profile view
+Payment section placeholder
+
+Must NOT interfere with admin dashboard.
+
+10. Hospital Support Contacts Section
+
+Add UI section for:
+
+Fire service contacts
+Waste management contacts
+Medical supply vendors
+Internal hospital emergency contacts
+
+Frontend display only.
+
+11. Agreement / Consent Form UI
+
+Create clean printable UI page for:
+
+Patient consent forms
+Hospital agreements
+Undertaking forms
+
+No backend integration required yet.
+
+12. Customer Support UI
+
+Add simple help/support page entry.
+
+13. Doctor–Patient Chat UI (PLACEHOLDER ONLY)
+
+Add chat interface UI structure only.
+
+Do not implement real messaging logic.
+
+FINAL QUALITY REQUIREMENTS
+Ensure no broken routes
+Ensure no API call failures
+Ensure all pages are responsive
+Ensure reusable components are used where possible
+Ensure consistent Tailwind styling
+Ensure TypeScript types are respected
+Ensure no backend dependency changes
+Ensure app runs without errors after changes
+FINAL OUTPUT GOAL
+
+The frontend should feel like a real hospital operating system:
+fast, clean, structured, and usable under pressure, without changing backend logic or breaking existing features.

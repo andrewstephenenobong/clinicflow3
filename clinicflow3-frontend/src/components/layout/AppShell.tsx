@@ -72,7 +72,7 @@ function BottomNav() {
     { to: "/queue", label: "Queue", icon: "🏥" },
     { to: "/patients", label: "Patients", icon: "👥" },
     { to: "/beds", label: "Beds", icon: "🛏" },
-    { to: "/admitted", label: "Admitted", icon: "📋" },
+    { to: "/emergency", label: "SOS", icon: "🆘" },
     { to: "/settings", label: "Settings", icon: "⚙️" },
   ];
 
