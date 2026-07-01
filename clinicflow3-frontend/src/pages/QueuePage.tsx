@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useOutletContext } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
+import { Clock, AlertTriangle, Plus } from "lucide-react";
 import { Badge } from "../components/ui/Badge";
 import { queueApi, patientApi } from "../services/api";
 import type { ApiPatient } from "../services/api";
@@ -37,12 +38,10 @@ function formatDOB(dob: string | null): string {
   });
 }
 
-/** Returns waiting minutes from checkedInAt ISO string */
 function waitingMinutes(checkedInAt: string): number {
   return Math.floor((Date.now() - new Date(checkedInAt).getTime()) / 60000);
 }
 
-/** Color-coded pill based on wait time */
 function WaitBadge({ checkedInAt }: { checkedInAt: string }) {
   const min = waitingMinutes(checkedInAt);
   const label = min < 1 ? "< 1 min" : min < 60 ? `${min} min` : `${Math.floor(min / 60)}h ${min % 60}m`;
@@ -55,8 +54,9 @@ function WaitBadge({ checkedInAt }: { checkedInAt: string }) {
       ? "bg-amber-100 text-amber-700 border border-amber-200"
       : "bg-emerald-100 text-emerald-700 border border-emerald-200";
   return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${cls}`}>
-      ⏱ {label}
+    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold ${cls}`}>
+      <Clock size={10} />
+      {label}
     </span>
   );
 }
@@ -124,7 +124,6 @@ export function QueuePage() {
           isEmergency ? "bg-red-50/60 hover:bg-red-50" : ""
         }`}
       >
-        {/* Position number */}
         <span
           className={`mt-0.5 w-7 h-7 rounded-full text-sm font-bold flex items-center justify-center flex-shrink-0 ${
             isEmergency ? "bg-red-100 text-red-700" : "bg-slate-100 text-slate-600"
@@ -133,7 +132,6 @@ export function QueuePage() {
           {index + 1}
         </span>
 
-        {/* Info */}
         <div className="flex-1 min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <p className="font-semibold text-slate-900">{visit.patient.name}</p>
@@ -156,7 +154,6 @@ export function QueuePage() {
           </div>
         </div>
 
-        {/* Action */}
         <button
           onClick={() => callVisit(visit.id)}
           disabled={actionLoading === visit.id}
@@ -166,7 +163,7 @@ export function QueuePage() {
               : "bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white"
           }`}
         >
-          {actionLoading === visit.id ? "..." : "Call →"}
+          {actionLoading === visit.id ? "..." : "Call"}
         </button>
       </li>
     );
@@ -184,23 +181,22 @@ export function QueuePage() {
         </div>
         <button
           onClick={() => setShowCheckIn(true)}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-semibold shadow-sm"
+          className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-semibold shadow-sm"
         >
-          + Check in patient
+          <Plus size={15} />
+          Check In Patient
         </button>
       </div>
 
-      {/* Emergency summary bar */}
       {waitingToday.filter((v) => v.triage === "EMERGENCY").length > 0 && (
         <div className="mb-4 bg-red-50 border border-red-300 rounded-lg px-4 py-3 flex items-center gap-3">
-          <span className="text-xl animate-pulse">🚨</span>
+          <AlertTriangle size={18} className="text-red-600 flex-shrink-0" />
           <p className="text-sm font-semibold text-red-800">
             {waitingToday.filter((v) => v.triage === "EMERGENCY").length} emergency patient(s) waiting — prioritise immediately
           </p>
         </div>
       )}
 
-      {/* Waiting today */}
       <div className="bg-white border border-slate-200 rounded-lg overflow-hidden">
         <div className="px-5 py-3 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
           <h2 className="text-sm font-semibold text-slate-700 uppercase tracking-wide">Waiting</h2>
@@ -208,7 +204,7 @@ export function QueuePage() {
         </div>
         {waitingToday.length === 0 ? (
           <div className="px-5 py-10 text-center text-sm text-slate-400">
-            No patients waiting. Quiet moment. 🌿
+            No active patients in queue.
           </div>
         ) : (
           <ul className="divide-y divide-slate-100">
@@ -217,11 +213,10 @@ export function QueuePage() {
         )}
       </div>
 
-      {/* Carried over */}
       {waitingCarried.length > 0 && (
         <div className="mt-6 bg-white border border-amber-200 rounded-lg overflow-hidden">
           <div className="px-5 py-3 border-b border-amber-200 bg-amber-50">
-            <h2 className="text-sm font-semibold text-amber-800 uppercase tracking-wide">Carried over</h2>
+            <h2 className="text-sm font-semibold text-amber-800 uppercase tracking-wide">Carried Over</h2>
             <p className="text-xs text-amber-700 mt-0.5">
               Checked in on a previous day and not yet seen. Call them, or mark seen to clear.
             </p>
@@ -232,11 +227,10 @@ export function QueuePage() {
         </div>
       )}
 
-      {/* With doctor */}
       {called.length > 0 && (
         <div className="mt-6 bg-white border border-slate-200 rounded-lg overflow-hidden">
           <div className="px-5 py-3 border-b border-slate-200 bg-slate-50">
-            <h2 className="text-sm font-semibold text-slate-700 uppercase tracking-wide">With doctor</h2>
+            <h2 className="text-sm font-semibold text-slate-700 uppercase tracking-wide">With Doctor</h2>
           </div>
           <ul className="divide-y divide-slate-100">
             {called.map((visit) => (
@@ -257,7 +251,7 @@ export function QueuePage() {
                   disabled={actionLoading === visit.id}
                   className="flex-shrink-0 bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-400 text-white px-3 py-1.5 rounded-md text-xs font-semibold"
                 >
-                  {actionLoading === visit.id ? "..." : "Mark seen"}
+                  {actionLoading === visit.id ? "..." : "Mark Seen"}
                 </button>
               </li>
             ))}
@@ -278,8 +272,6 @@ export function QueuePage() {
     </div>
   );
 }
-
-// ── CheckInDialog ──────────────────────────────────────────────────────────
 
 interface CheckInDialogProps {
   onClose: () => void;
@@ -398,7 +390,7 @@ function CheckInDialog({ onClose, onSuccess }: CheckInDialogProps) {
         onClick={(e) => e.stopPropagation()}
       >
         <div className="px-6 py-4 border-b border-slate-200">
-          <h2 className="text-lg font-semibold text-slate-900">Check in patient</h2>
+          <h2 className="text-lg font-semibold text-slate-900">Check In Patient</h2>
           <p className="text-xs text-slate-500 mt-0.5">
             Search for a returning patient or register a new one.
           </p>
@@ -429,13 +421,13 @@ function CheckInDialog({ onClose, onSuccess }: CheckInDialogProps) {
                 </button>
               </div>
               <p className="text-xs text-blue-700 mt-2 font-medium">
-                ✓ Returning patient — existing record will be used
+                Returning patient — existing record will be used.
               </p>
             </div>
           ) : (
             <div className="relative">
               <label className="block text-sm font-medium text-slate-700 mb-1">
-                Patient name
+                Patient Name
               </label>
               <input
                 type="text"
@@ -469,7 +461,7 @@ function CheckInDialog({ onClose, onSuccess }: CheckInDialogProps) {
                         </p>
                       </div>
                       <span className="text-xs font-semibold text-blue-600 ml-2 shrink-0">
-                        Select →
+                        Select
                       </span>
                     </button>
                   ))}
@@ -478,7 +470,7 @@ function CheckInDialog({ onClose, onSuccess }: CheckInDialogProps) {
                     onClick={chooseNew}
                     className="w-full flex items-center gap-2 px-4 py-3 hover:bg-slate-50 text-left text-sm font-semibold text-slate-600 border-t border-slate-200"
                   >
-                    <span className="text-base">➕</span>
+                    <Plus size={14} />
                     Register "{name}" as a new patient
                   </button>
                 </div>
@@ -490,20 +482,20 @@ function CheckInDialog({ onClose, onSuccess }: CheckInDialogProps) {
             <>
               <div className="flex items-center justify-between">
                 <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
-                  New patient details
+                  New Patient Details
                 </p>
                 <button
                   onClick={resetIdentity}
                   className="text-xs font-semibold text-slate-500 hover:text-slate-700"
                 >
-                  ← Back to search
+                  Back to Search
                 </button>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">
-                    Date of birth
+                    Date of Birth
                   </label>
                   <input
                     type="date"
@@ -534,7 +526,7 @@ function CheckInDialog({ onClose, onSuccess }: CheckInDialogProps) {
             <>
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">
-                  Reason for visit
+                  Reason for Visit
                 </label>
                 <input
                   type="text"
@@ -564,8 +556,6 @@ function CheckInDialog({ onClose, onSuccess }: CheckInDialogProps) {
                           : "bg-white text-slate-500 border-slate-200 hover:border-slate-300"
                       }`}
                     >
-                      {level === "EMERGENCY" && "🚨 "}
-                      {level === "URGENT" && "⚠️ "}
                       {level}
                     </button>
                   ))}
@@ -597,9 +587,10 @@ function CheckInDialog({ onClose, onSuccess }: CheckInDialogProps) {
           <button
             onClick={handleSubmit}
             disabled={!canSubmit || isSubmitting}
-            className="px-4 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-md disabled:bg-slate-300 disabled:cursor-not-allowed"
+            className="px-4 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700
+                       rounded-md disabled:bg-slate-300 disabled:cursor-not-allowed"
           >
-            {isSubmitting ? "Adding..." : "Add to queue"}
+            {isSubmitting ? "Checking in..." : "Check In Patient"}
           </button>
         </div>
       </div>

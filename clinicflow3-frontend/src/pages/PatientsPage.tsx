@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { Search, Phone, MapPin, User } from "lucide-react";
 import { Badge } from "../components/ui/Badge";
 import { patientApi } from "../services/api";
 import type { ApiPatient } from "../services/api";
@@ -34,12 +35,10 @@ function PatientCard({ patient, isExpanded, onToggle }: {
         onClick={onToggle}
         className="w-full flex items-center gap-4 px-5 py-4 hover:bg-slate-50 transition-colors text-left"
       >
-        {/* Avatar */}
         <div className="w-10 h-10 rounded-full bg-blue-100 text-blue-700 font-bold flex items-center justify-center text-sm flex-shrink-0">
           {initial}
         </div>
 
-        {/* Info */}
         <div className="flex-1 min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <p className="font-semibold text-slate-900">{patient.name}</p>
@@ -108,9 +107,8 @@ export function PatientsPage() {
         </div>
       </div>
 
-      {/* Search */}
       <div className="mb-4 relative">
-        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">🔍</span>
+        <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
         <input
           type="text"
           value={search}
@@ -121,11 +119,10 @@ export function PatientsPage() {
         />
       </div>
 
-      {/* Patient list */}
       <div className="bg-white border border-slate-200 rounded-lg overflow-hidden">
         {filtered.length === 0 ? (
           <div className="px-5 py-10 text-center text-sm text-slate-400">
-            {search ? "No patients match that search." : "No patients yet."}
+            {search ? "No patients match that search." : "No patients registered."}
           </div>
         ) : (
           <ul>
@@ -166,12 +163,11 @@ function VisitHistory({ patientId }: { patientId: string }) {
 
   return (
     <div className="px-5 pb-5 bg-slate-50/50 space-y-4">
-      {/* Medical flags banner */}
       {hasMedicalFlags && (
         <div className="space-y-2">
           {patient.allergies && (
             <div className="bg-red-50 border border-red-200 rounded-md px-4 py-2.5 flex items-start gap-2">
-              <span className="text-red-600 font-bold text-xs mt-0.5">⚠</span>
+              <span className="text-red-600 font-bold text-xs mt-0.5">!</span>
               <div>
                 <p className="text-xs font-bold text-red-700 uppercase tracking-wide">Allergies</p>
                 <p className="text-sm text-red-900">{patient.allergies}</p>
@@ -180,7 +176,7 @@ function VisitHistory({ patientId }: { patientId: string }) {
           )}
           {patient.chronicConditions && (
             <div className="bg-amber-50 border border-amber-200 rounded-md px-4 py-2.5 flex items-start gap-2">
-              <span className="text-amber-700 font-bold text-xs mt-0.5">♥</span>
+              <span className="text-amber-700 font-bold text-xs mt-0.5">Dx</span>
               <div>
                 <p className="text-xs font-bold text-amber-800 uppercase tracking-wide">Chronic Conditions</p>
                 <p className="text-sm text-amber-900">{patient.chronicConditions}</p>
@@ -190,26 +186,33 @@ function VisitHistory({ patientId }: { patientId: string }) {
         </div>
       )}
 
-      {/* Details row */}
       <div className="flex flex-wrap gap-4 text-xs text-slate-600">
         {patient.bloodGroup && (
           <span className="font-semibold">Blood: <span className="text-red-700">{patient.bloodGroup}</span></span>
         )}
         {patient.phone && (
-          <span>📞 {patient.phone}</span>
+          <span className="flex items-center gap-1">
+            <Phone size={11} />
+            {patient.phone}
+          </span>
         )}
         {patient.address && (
-          <span>📍 {patient.address}</span>
+          <span className="flex items-center gap-1">
+            <MapPin size={11} />
+            {patient.address}
+          </span>
         )}
         {patient.nextOfKin && (
-          <span>👤 Next of kin: {patient.nextOfKin}</span>
+          <span className="flex items-center gap-1">
+            <User size={11} />
+            Next of kin: {patient.nextOfKin}
+          </span>
         )}
       </div>
 
-      {/* Visit history */}
       <div>
         <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
-          Visit history
+          Visit History
         </p>
         {patient.visits.length === 0 ? (
           <p className="text-xs text-slate-400">No visits on record.</p>

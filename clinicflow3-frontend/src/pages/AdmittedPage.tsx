@@ -276,7 +276,7 @@ function PatientPanel({
               <>
                 {patient.allergies && (
                   <div className="bg-red-50 border border-red-200 rounded-md px-4 py-3">
-                    <p className="text-xs font-bold text-red-700 uppercase tracking-wide">⚠ Allergies</p>
+                    <p className="text-xs font-bold text-red-700 uppercase tracking-wide">Allergies</p>
                     <p className="text-sm text-red-900 mt-1">{patient.allergies}</p>
                   </div>
                 )}

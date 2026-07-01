@@ -2,6 +2,15 @@ import { useState } from "react";
 import { Outlet } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { NavLink } from "react-router-dom";
+import {
+  LayoutDashboard,
+  ListOrdered,
+  Users,
+  BedDouble,
+  AlertTriangle,
+  Settings,
+} from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { Sidebar } from "./Sidebar";
 import { TopBar } from "./TopBar";
 import { useAuth } from "../../context/AuthContext";
@@ -62,18 +71,23 @@ function mapBed(b: ApiBed): Bed {
   };
 }
 
-// Bottom nav for mobile
+interface BottomNavItem {
+  to: string;
+  label: string;
+  Icon: LucideIcon;
+}
+
 function BottomNav() {
   const { currentUser } = useAuth();
   const isAdmin = currentUser?.role === "ADMIN";
 
-  const items = [
-    ...(isAdmin ? [{ to: "/dashboard", label: "Dashboard", icon: "📊" }] : []),
-    { to: "/queue", label: "Queue", icon: "🏥" },
-    { to: "/patients", label: "Patients", icon: "👥" },
-    { to: "/beds", label: "Beds", icon: "🛏" },
-    { to: "/emergency", label: "SOS", icon: "🆘" },
-    { to: "/settings", label: "Settings", icon: "⚙️" },
+  const items: BottomNavItem[] = [
+    ...(isAdmin ? [{ to: "/dashboard", label: "Dashboard", Icon: LayoutDashboard }] : []),
+    { to: "/queue",     label: "Queue",    Icon: ListOrdered  },
+    { to: "/patients",  label: "Patients", Icon: Users        },
+    { to: "/beds",      label: "Beds",     Icon: BedDouble    },
+    { to: "/emergency", label: "SOS",      Icon: AlertTriangle },
+    { to: "/settings",  label: "Settings", Icon: Settings     },
   ];
 
   return (
@@ -89,7 +103,7 @@ function BottomNav() {
               }`
             }
           >
-            <span className="text-lg mb-0.5">{item.icon}</span>
+            <item.Icon size={18} className="mb-0.5" />
             <span>{item.label}</span>
           </NavLink>
         ))}
@@ -126,31 +140,26 @@ export function AppShell() {
   const invalidateBeds = () =>
     queryClient.invalidateQueries({ queryKey: ["beds"] });
 
-  // Create a bed on the server, then refetch the list.
   const addBed = async (bed: Omit<Bed, "id">) => {
     await bedApi.create(bed.bedNumber, bed.ward);
     await invalidateBeds();
   };
 
-  // Edit a bed's number/ward (not admission — that goes through assign/discharge).
   const updateBed = async (id: string, patch: { bedNumber?: string; ward?: string }) => {
     await bedApi.update(id, { bedNumber: patch.bedNumber, ward: patch.ward });
     await invalidateBeds();
   };
 
-  // Remove a bed on the server, then refetch.
   const removeBed = async (id: string) => {
     await bedApi.remove(id);
     await invalidateBeds();
   };
 
-  // Admit a patient to a bed (opens an admission record server-side), then refetch.
   const assignBed = async (bedId: string, patientId: string, admissionNote?: string) => {
     await bedApi.assign(bedId, patientId, admissionNote);
     await invalidateBeds();
   };
 
-  // Discharge a patient (closes the admission record server-side), then refetch.
   const dischargeBed = async (bedId: string, dischargeNote?: string) => {
     await bedApi.discharge(bedId, dischargeNote);
     await invalidateBeds();
@@ -187,7 +196,6 @@ export function AppShell() {
 
   return (
     <div className="min-h-screen flex bg-slate-50">
-      {/* Sidebar — hidden on mobile */}
       <div className="hidden md:block">
         <Sidebar />
       </div>
@@ -199,7 +207,6 @@ export function AppShell() {
         </main>
       </div>
 
-      {/* Bottom nav — mobile only */}
       <BottomNav />
     </div>
   );

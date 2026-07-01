@@ -1,8 +1,10 @@
+import { Mail, Globe, Clock } from "lucide-react";
+
 export function SupportPage() {
   const faqs = [
     {
       q: "How do I register a new patient?",
-      a: "Go to the Queue page and click '+ Check in patient'. Search for the patient by name — if they don't exist, you'll be given the option to register them as new.",
+      a: "Go to the Queue page and click 'Check In Patient'. Search for the patient by name — if they don't exist, you'll be given the option to register them as new.",
     },
     {
       q: "How do I admit a patient to a bed?",
@@ -18,11 +20,11 @@ export function SupportPage() {
     },
     {
       q: "How are emergency triage cases prioritised?",
-      a: "The Queue automatically sorts by triage level: EMERGENCY → URGENT → ROUTINE. Within the same level, earlier check-in times rank first.",
+      a: "The Queue automatically sorts by triage level: EMERGENCY, then URGENT, then ROUTINE. Within the same level, earlier check-in times rank first.",
     },
     {
       q: "What does 'carried over' mean?",
-      a: "A 'carried over' patient checked in on a previous day and was not yet seen. They appear in a separate section at the top of the queue.",
+      a: "A carried-over patient checked in on a previous day and was not yet seen. They appear in a separate section at the top of the queue.",
     },
   ];
 
@@ -35,18 +37,17 @@ export function SupportPage() {
         </p>
       </div>
 
-      {/* Quick contact */}
       <div className="bg-blue-50 border border-blue-200 rounded-xl p-5">
         <p className="text-sm font-semibold text-blue-800 mb-3">Contact Support</p>
         <div className="space-y-2 text-sm text-blue-900">
           <div className="flex items-center gap-2">
-            <span>📧</span>
+            <Mail size={14} className="flex-shrink-0" />
             <a href="mailto:support@clinicflow.ng" className="underline hover:text-blue-700">
               support@clinicflow.ng
             </a>
           </div>
           <div className="flex items-center gap-2">
-            <span>🌐</span>
+            <Globe size={14} className="flex-shrink-0" />
             <a
               href="https://github.com/andrewstephenenobong/clinicflow3"
               target="_blank"
@@ -57,13 +58,12 @@ export function SupportPage() {
             </a>
           </div>
           <div className="flex items-center gap-2">
-            <span>⏰</span>
+            <Clock size={14} className="flex-shrink-0" />
             <span>Support hours: Mon–Fri, 8am–6pm WAT</span>
           </div>
         </div>
       </div>
 
-      {/* FAQ */}
       <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
         <div className="px-5 py-4 border-b border-slate-200 bg-slate-50">
           <h2 className="text-sm font-semibold text-slate-700 uppercase tracking-wide">
@@ -80,7 +80,6 @@ export function SupportPage() {
         </ul>
       </div>
 
-      {/* About */}
       <div className="bg-white border border-slate-200 rounded-xl p-5 text-sm text-slate-600">
         <p className="font-semibold text-slate-800 mb-1">About ClinicFlow</p>
         <p>

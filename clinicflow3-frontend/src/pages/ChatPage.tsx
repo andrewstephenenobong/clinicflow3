@@ -41,15 +41,13 @@ export function ChatPage() {
         </p>
       </div>
 
-      {/* Placeholder notice */}
       <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 mb-4 flex-shrink-0">
         <p className="text-xs font-semibold text-amber-800">
-          🚧 This is a UI preview only. Messages are not sent or stored.
+          Preview only. Messages are not sent or stored.
           Real-time messaging integration is planned for a future release.
         </p>
       </div>
 
-      {/* Conversation threads selector (mock) */}
       <div className="flex gap-3 mb-4 flex-shrink-0 overflow-x-auto pb-1">
         {["Amina Bello", "Chukwudi Okafor", "Fatima Hassan"].map((name, i) => (
           <button
@@ -68,9 +66,7 @@ export function ChatPage() {
         ))}
       </div>
 
-      {/* Chat window */}
       <div className="flex-1 bg-white border border-slate-200 rounded-xl overflow-hidden flex flex-col min-h-0">
-        {/* Chat header */}
         <div className="px-4 py-3 border-b border-slate-200 bg-slate-50 flex items-center gap-3 flex-shrink-0">
           <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-sm">
             A
@@ -81,7 +77,6 @@ export function ChatPage() {
           </div>
         </div>
 
-        {/* Messages */}
         <div className="flex-1 overflow-y-auto p-4 space-y-3">
           {messages.map((msg) => (
             <div
@@ -108,7 +103,6 @@ export function ChatPage() {
           ))}
         </div>
 
-        {/* Input */}
         <div className="px-4 py-3 border-t border-slate-200 flex gap-2 flex-shrink-0">
           <input
             type="text"

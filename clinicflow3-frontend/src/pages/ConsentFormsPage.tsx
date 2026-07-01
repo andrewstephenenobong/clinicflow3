@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { FileText, Printer } from "lucide-react";
 
 interface ConsentForm {
   id: string;
@@ -120,8 +121,9 @@ export function ConsentFormsPage() {
                 <p className="text-xs text-slate-500 mt-0.5">{form.subtitle}</p>
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-xs font-semibold text-blue-600 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-full">
-                  📄 View / Print
+                <span className="flex items-center gap-1.5 text-xs font-semibold text-blue-600 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-full">
+                  <FileText size={11} />
+                  View / Print
                 </span>
                 <span className="text-slate-400">›</span>
               </div>
@@ -146,19 +148,18 @@ function FormPrintView({ form, onBack }: { form: ConsentForm; onBack: () => void
           onClick={onBack}
           className="text-sm font-semibold text-slate-600 hover:text-slate-900 flex items-center gap-1"
         >
-          ← Back to forms
+          Back to Forms
         </button>
         <button
           onClick={() => window.print()}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-semibold"
+          className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-semibold"
         >
-          🖨️ Print Form
+          <Printer size={15} />
+          Print Form
         </button>
       </div>
 
-      {/* Printable area */}
       <div className="bg-white border border-slate-200 rounded-xl p-8 space-y-6 print:border-0 print:p-0 print:shadow-none">
-        {/* Header */}
         <div className="text-center border-b border-slate-200 pb-6">
           <p className="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-2">
             ClinicFlow Medical Centre
@@ -167,7 +168,6 @@ function FormPrintView({ form, onBack }: { form: ConsentForm; onBack: () => void
           <p className="text-sm text-slate-500 mt-1">{form.subtitle}</p>
         </div>
 
-        {/* Patient info fields */}
         <div className="grid grid-cols-2 gap-4 text-sm">
           {[
             "Patient Full Name",
@@ -182,7 +182,6 @@ function FormPrintView({ form, onBack }: { form: ConsentForm; onBack: () => void
           ))}
         </div>
 
-        {/* Sections */}
         <div className="space-y-5">
           {form.sections.map((section) => (
             <div key={section.heading}>
@@ -192,7 +191,6 @@ function FormPrintView({ form, onBack }: { form: ConsentForm; onBack: () => void
           ))}
         </div>
 
-        {/* Signature section */}
         <div className="border-t border-slate-200 pt-6 grid grid-cols-2 gap-8">
           <div>
             <p className="text-xs text-slate-500 mb-1">Patient / Representative Signature</p>

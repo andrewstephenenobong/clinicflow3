@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useCallback } from "react";
 import type { ReactNode } from "react";
+import { CheckCircle2, XCircle, Info } from "lucide-react";
 
 type ToastType = "success" | "error" | "info";
 
@@ -22,7 +23,6 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     const id = `toast-${Date.now()}`;
     setToasts((current) => [...current, { id, message, type }]);
 
-    // Auto-remove after 3.5 seconds
     setTimeout(() => {
       setToasts((current) => current.filter((t) => t.id !== id));
     }, 3500);
@@ -32,12 +32,12 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     <ToastContext.Provider value={{ showToast }}>
       {children}
 
-      {/* Toast container — fixed bottom-right */}
       <div className="fixed bottom-6 right-6 z-50 flex flex-col gap-2 pointer-events-none">
         {toasts.map((toast) => (
           <div
             key={toast.id}
             className={`
+              flex items-center gap-2
               px-4 py-3 rounded-lg shadow-lg text-sm font-medium
               pointer-events-auto max-w-sm
               animate-slide-in
@@ -49,9 +49,9 @@ export function ToastProvider({ children }: { children: ReactNode }) {
               }
             `}
           >
-            {toast.type === "success" && "✓ "}
-            {toast.type === "error" && "✕ "}
-            {toast.type === "info" && "· "}
+            {toast.type === "success" && <CheckCircle2 size={16} className="flex-shrink-0" />}
+            {toast.type === "error"   && <XCircle      size={16} className="flex-shrink-0" />}
+            {toast.type === "info"    && <Info         size={16} className="flex-shrink-0" />}
             {toast.message}
           </div>
         ))}

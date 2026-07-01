@@ -1,5 +1,20 @@
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
+import {
+  Inbox,
+  CheckCircle2,
+  Clock,
+  BedDouble,
+  Users,
+  UserCog,
+  Building2,
+  ListOrdered,
+  ClipboardList,
+  FileText,
+  Settings,
+  AlertTriangle,
+} from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { dashboardApi, queueApi } from "../services/api";
 import { WelcomeBanner } from "../components/ui/WelcomeBanner";
@@ -9,18 +24,18 @@ function StatCard({
   value,
   sub,
   color,
-  icon,
+  Icon,
 }: {
   label: string;
   value: number | string;
   sub?: string;
   color: string;
-  icon?: string;
+  Icon?: LucideIcon;
 }) {
   return (
     <div className="bg-white border border-slate-200 rounded-xl p-5 flex items-start gap-4">
-      {icon && (
-        <span className="text-2xl mt-0.5 flex-shrink-0">{icon}</span>
+      {Icon && (
+        <Icon size={22} className={`mt-0.5 flex-shrink-0 ${color}`} />
       )}
       <div>
         <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">
@@ -35,13 +50,13 @@ function StatCard({
 
 function QuickActionCard({
   to,
-  icon,
+  Icon,
   title,
   description,
   accent,
 }: {
   to: string;
-  icon: string;
+  Icon: LucideIcon;
   title: string;
   description: string;
   accent?: string;
@@ -53,7 +68,7 @@ function QuickActionCard({
         accent ?? "border-slate-200 hover:border-blue-300"
       }`}
     >
-      <span className="text-2xl">{icon}</span>
+      <Icon size={20} className="text-slate-500 group-hover:text-blue-600 transition-colors" />
       <p className="font-semibold text-slate-900 mt-2 group-hover:text-blue-700 transition-colors">
         {title}
       </p>
@@ -97,7 +112,6 @@ export function DashboardPage() {
     <div className="max-w-5xl mx-auto space-y-8">
       {stats?.totalPatients === 0 && <WelcomeBanner />}
 
-      {/* Header */}
       <div className="flex items-start justify-between">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Dashboard</h1>
@@ -109,14 +123,14 @@ export function DashboardPage() {
           to="/queue"
           className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-semibold shadow-sm transition-colors"
         >
-          <span>🏥</span> View Queue
+          <ListOrdered size={15} />
+          View Queue
         </Link>
       </div>
 
-      {/* Live queue snapshot — primary action area */}
       {emergencyNow > 0 && (
         <div className="bg-red-50 border-2 border-red-400 rounded-xl px-5 py-4 flex items-center gap-4">
-          <span className="text-3xl animate-pulse">🚨</span>
+          <AlertTriangle size={24} className="text-red-600 flex-shrink-0" />
           <div>
             <p className="font-bold text-red-800 text-lg">
               {emergencyNow} Emergency {emergencyNow === 1 ? "Patient" : "Patients"} Waiting
@@ -129,49 +143,47 @@ export function DashboardPage() {
             to="/queue"
             className="ml-auto bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-semibold flex-shrink-0"
           >
-            Go to Queue →
+            Go to Queue
           </Link>
         </div>
       )}
 
-      {/* Today's live stats */}
       <div>
         <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">
           Today's Operations
         </h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <StatCard
-            label="Checked in"
+            label="Checked In"
             value={stats?.patientsCheckedInToday ?? 0}
             sub="patients today"
             color="text-blue-600"
-            icon="📥"
+            Icon={Inbox}
           />
           <StatCard
             label="Seen"
             value={stats?.patientsSeenToday ?? 0}
             sub="consultations done"
             color="text-emerald-600"
-            icon="✅"
+            Icon={CheckCircle2}
           />
           <StatCard
-            label="Still waiting"
+            label="Still Waiting"
             value={stillWaiting < 0 ? 0 : stillWaiting}
             sub="in queue now"
             color={stillWaiting > 5 ? "text-red-600" : "text-amber-600"}
-            icon="⏳"
+            Icon={Clock}
           />
           <StatCard
-            label="Beds available"
+            label="Beds Available"
             value={stats?.availableBeds ?? 0}
             sub={`of ${stats?.totalBeds ?? 0} total`}
             color="text-slate-900"
-            icon="🛏"
+            Icon={BedDouble}
           />
         </div>
       </div>
 
-      {/* Waiting queue snapshot */}
       <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
         <div className="px-5 py-3 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
           <p className="text-sm font-semibold text-slate-700 uppercase tracking-wide">
@@ -183,7 +195,7 @@ export function DashboardPage() {
         </div>
         {waitingNow === 0 ? (
           <div className="px-5 py-8 text-center text-sm text-slate-400">
-            No patients waiting. 🎉
+            No active patients in queue.
           </div>
         ) : (
           <ul className="divide-y divide-slate-100">
@@ -217,7 +229,7 @@ export function DashboardPage() {
                       </span>
                       {v.triage === "EMERGENCY" && (
                         <span className="ml-2 text-xs font-bold text-red-700 bg-red-100 border border-red-200 px-1.5 py-0.5 rounded">
-                          🚨 EMERGENCY
+                          EMERGENCY
                         </span>
                       )}
                     </div>
@@ -241,30 +253,28 @@ export function DashboardPage() {
         )}
       </div>
 
-      {/* All-time stats */}
       <div>
         <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">
           All Time
         </h2>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-          <StatCard label="Total patients" value={stats?.totalPatients ?? 0} sub="registered" color="text-slate-900" icon="👥" />
-          <StatCard label="Staff members" value={stats?.totalStaff ?? 0} sub="on your team" color="text-slate-900" icon="👨‍⚕️" />
-          <StatCard label="Total beds" value={stats?.totalBeds ?? 0} sub="across all wards" color="text-slate-900" icon="🏨" />
+          <StatCard label="Total Patients" value={stats?.totalPatients ?? 0} sub="registered" color="text-slate-900" Icon={Users} />
+          <StatCard label="Staff Members"  value={stats?.totalStaff ?? 0}    sub="on your team"     color="text-slate-900" Icon={UserCog} />
+          <StatCard label="Total Beds"     value={stats?.totalBeds ?? 0}     sub="across all wards" color="text-slate-900" Icon={Building2} />
         </div>
       </div>
 
-      {/* Quick actions */}
       <div>
         <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">
           Quick Actions
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-          <QuickActionCard to="/queue" icon="🏥" title="Manage Queue" description="Check in patients and call them to the doctor" />
-          <QuickActionCard to="/patients" icon="👥" title="Patient Records" description="Search, view, and update patient profiles" />
-          <QuickActionCard to="/beds" icon="🛏" title="Bed Management" description="Assign and discharge patients from beds" />
-          <QuickActionCard to="/emergency" icon="🆘" title="Emergency / SOS" description="Emergency contacts and SOS alert" accent="border-red-200 hover:border-red-400" />
-          <QuickActionCard to="/consent" icon="📄" title="Consent Forms" description="Print patient consent and agreement forms" />
-          <QuickActionCard to="/settings" icon="⚙️" title="Settings" description="Manage clinic profile, staff, and beds" />
+          <QuickActionCard to="/queue"     Icon={ListOrdered}   title="Manage Queue"     description="Check in patients and call them to the doctor" />
+          <QuickActionCard to="/patients"  Icon={Users}         title="Patient Records"  description="Search, view, and update patient profiles" />
+          <QuickActionCard to="/beds"      Icon={BedDouble}     title="Bed Management"   description="Assign and discharge patients from beds" />
+          <QuickActionCard to="/emergency" Icon={AlertTriangle} title="Emergency / SOS"  description="Emergency contacts and SOS alert" accent="border-red-200 hover:border-red-400" />
+          <QuickActionCard to="/consent"   Icon={FileText}      title="Consent Forms"    description="Print patient consent and agreement forms" />
+          <QuickActionCard to="/settings"  Icon={Settings}      title="Settings"         description="Manage clinic profile, staff, and beds" />
         </div>
       </div>
     </div>

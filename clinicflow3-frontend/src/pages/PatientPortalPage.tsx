@@ -1,3 +1,6 @@
+import { ClipboardList, Pill, UserCog, User, CreditCard, Lock } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
+
 export function PatientPortalPage() {
   return (
     <div className="max-w-4xl mx-auto space-y-6">
@@ -10,46 +13,47 @@ export function PatientPortalPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <PortalCard
-          icon="📋"
+          Icon={ClipboardList}
           title="Medical History"
           description="View past diagnoses, visit notes, and clinical records."
           badge="Read-only"
           color="blue"
         />
         <PortalCard
-          icon="💊"
+          Icon={Pill}
           title="Prescriptions"
           description="Current and past medication prescriptions issued by your doctor."
           badge="Read-only"
           color="emerald"
         />
         <PortalCard
-          icon="👨‍⚕️"
+          Icon={UserCog}
           title="Assigned Doctor"
           description="Contact info and profile of your assigned physician."
           badge="Read-only"
           color="purple"
         />
         <PortalCard
-          icon="👤"
+          Icon={User}
           title="My Profile"
           description="View your personal and demographic information on file."
           badge="Read-only"
           color="slate"
         />
         <PortalCard
-          icon="💳"
+          Icon={CreditCard}
           title="Payments"
           description="View bills, payment history, and outstanding balances."
-          badge="Coming soon"
+          badge="Coming Soon"
           color="amber"
           disabled
         />
       </div>
 
       <div className="bg-blue-50 border border-blue-200 rounded-xl p-5">
-        <p className="text-sm font-semibold text-blue-800 mb-1">
-          🔒 This portal is read-only
+        <p className="text-sm font-semibold text-blue-800 mb-1 flex items-center gap-1.5">
+          <Lock size={14} />
+          This portal is read-only
         </p>
         <p className="text-xs text-blue-700">
           Patients can view their records here. All data is provided by the clinical team.
@@ -61,9 +65,9 @@ export function PatientPortalPage() {
 }
 
 function PortalCard({
-  icon, title, description, badge, color, disabled,
+  Icon, title, description, badge, color, disabled,
 }: {
-  icon: string;
+  Icon: LucideIcon;
   title: string;
   description: string;
   badge: string;
@@ -78,6 +82,14 @@ function PortalCard({
     amber:   "bg-amber-50 border-amber-200 text-amber-700",
   };
 
+  const iconColorMap: Record<string, string> = {
+    blue:    "text-blue-500",
+    emerald: "text-emerald-500",
+    purple:  "text-purple-500",
+    slate:   "text-slate-400",
+    amber:   "text-amber-500",
+  };
+
   return (
     <div
       className={`bg-white border border-slate-200 rounded-xl p-5 ${
@@ -85,7 +97,7 @@ function PortalCard({
       }`}
     >
       <div className="flex items-start justify-between mb-2">
-        <span className="text-2xl">{icon}</span>
+        <Icon size={20} className={iconColorMap[color]} />
         <span
           className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${colorMap[color]}`}
         >

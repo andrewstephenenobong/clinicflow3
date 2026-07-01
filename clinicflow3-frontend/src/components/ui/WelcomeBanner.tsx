@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { X } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 
 export function WelcomeBanner() {
@@ -14,7 +15,7 @@ export function WelcomeBanner() {
       <div className="flex items-start justify-between">
         <div>
           <h2 className="text-lg font-semibold text-blue-900">
-            Welcome to ClinicFlow, {currentClinic?.name}! 🎉
+            Welcome to ClinicFlow, {currentClinic?.name}
           </h2>
           <p className="text-sm text-blue-700 mt-1">
             You're all set. Here's how to get started in 3 steps.
@@ -22,14 +23,14 @@ export function WelcomeBanner() {
         </div>
         <button
           onClick={() => setDismissed(true)}
-          className="text-blue-400 hover:text-blue-600 text-lg font-bold ml-4"
+          className="text-blue-400 hover:text-blue-600 ml-4"
+          aria-label="Dismiss"
         >
-          ✕
+          <X size={18} />
         </button>
       </div>
 
       <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
-        {/* Step 1 */}
         <div className="bg-white rounded-lg border border-blue-100 px-4 py-3">
           <p className="text-xs font-semibold text-blue-500 uppercase tracking-wide mb-1">
             Step 1
@@ -42,22 +43,20 @@ export function WelcomeBanner() {
             onClick={() => navigate("/settings")}
             className="mt-2 text-xs font-semibold text-blue-600 hover:underline"
           >
-            Go to Settings →
+            Go to Settings
           </button>
         </div>
 
-        {/* Step 2 */}
         <div className="bg-white rounded-lg border border-blue-100 px-4 py-3">
           <p className="text-xs font-semibold text-blue-500 uppercase tracking-wide mb-1">
             Step 2
           </p>
           <p className="text-sm font-medium text-slate-800">Check in your first patient</p>
           <p className="text-xs text-slate-500 mt-0.5">
-            Click "+ Check in patient" to add them to the queue.
+            Click "Check In Patient" on the Queue page to add them to the queue.
           </p>
         </div>
 
-        {/* Step 3 */}
         <div className="bg-white rounded-lg border border-blue-100 px-4 py-3">
           <p className="text-xs font-semibold text-blue-500 uppercase tracking-wide mb-1">
             Step 3
@@ -70,7 +69,7 @@ export function WelcomeBanner() {
             onClick={() => navigate("/settings")}
             className="mt-2 text-xs font-semibold text-blue-600 hover:underline"
           >
-            Go to Settings →
+            Go to Settings
           </button>
         </div>
       </div>
