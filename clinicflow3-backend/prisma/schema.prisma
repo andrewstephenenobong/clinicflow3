@@ -72,9 +72,11 @@ model User {
   role         Role       @default(RECEPTIONIST)
   status       UserStatus @default(ACTIVE)
   totpSecret   String?
+  department   String?
   faceConsent  Boolean    @default(false)
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
+  deletedAt    DateTime?
   clinic       Clinic     @relation(fields: [clinicId], references: [id], onDelete: Cascade)
   seenVisits   Visit[]    @relation("SeenByUser")
   auditLogs    AuditLog[]
@@ -97,6 +99,7 @@ model Patient {
   chronicConditions String?
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
+  deletedAt         DateTime?
   clinic            Clinic   @relation(fields: [clinicId], references: [id], onDelete: Cascade)
   visits            Visit[]
   beds              Bed[]
@@ -123,6 +126,7 @@ model Visit {
   checkedInAt  DateTime    @default(now())
   calledAt     DateTime?
   seenAt       DateTime?
+  deletedAt    DateTime?
   patient      Patient     @relation(fields: [patientId], references: [id], onDelete: Cascade)
   clinic       Clinic      @relation(fields: [clinicId], references: [id], onDelete: Cascade)
   seenBy       User?       @relation("SeenByUser", fields: [seenByUserId], references: [id], onDelete: SetNull)
@@ -142,6 +146,7 @@ model Bed {
   admittedAt DateTime?
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
+  deletedAt  DateTime?
   clinic     Clinic    @relation(fields: [clinicId], references: [id], onDelete: Cascade)
   patient    Patient?  @relation(fields: [patientId], references: [id], onDelete: SetNull)
   admissions Admission[]
@@ -165,6 +170,7 @@ model Admission {
   dischargedByUserId String?
   dischargeNote      String?
   createdAt          DateTime  @default(now())
+  deletedAt          DateTime?
 
   clinic  Clinic   @relation(fields: [clinicId], references: [id], onDelete: Cascade)
   patient Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
