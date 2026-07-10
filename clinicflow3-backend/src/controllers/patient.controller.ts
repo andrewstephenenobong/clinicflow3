@@ -29,6 +29,7 @@ export async function searchPatients(req: AuthRequest, res: Response) {
   const patients = await prisma.patient.findMany({
     where: {
       clinicId,
+      deletedAt: null,
       name: { contains: q, mode: "insensitive" },
     },
     select: {
@@ -57,7 +58,7 @@ export async function getPatients(req: AuthRequest, res: Response) {
   const clinicId = req.user!.clinicId;
 
   const patients = await prisma.patient.findMany({
-    where: { clinicId },
+    where: { clinicId, deletedAt: null },
     orderBy: { name: "asc" },
     select: {
       id: true,
@@ -84,10 +85,10 @@ export async function getPatient(req: AuthRequest, res: Response) {
   const patientId = req.params.id as string;
 
   const patient = await prisma.patient.findFirst({
-    where: { id: patientId, clinicId },
+    where: { id: patientId, clinicId, deletedAt: null },
     include: {
       visits: {
-        where: { clinicId },
+        where: { clinicId, deletedAt: null },
         orderBy: { checkedInAt: "desc" },
         select: {
           id: true,
@@ -169,7 +170,7 @@ export async function updatePatient(req: AuthRequest, res: Response) {
   const { phone, address, nextOfKin, bloodGroup, allergies, chronicConditions } = req.body;
 
   const existing = await prisma.patient.findFirst({
-    where: { id: patientId, clinicId },
+    where: { id: patientId, clinicId, deletedAt: null },
   });
 
   if (!existing) {
@@ -193,4 +194,32 @@ export async function updatePatient(req: AuthRequest, res: Response) {
   });
 
   res.json({ patient });
+}
+
+// DELETE /api/patients/:id
+// Soft delete a patient. Only ADMIN or DOCTOR can perform this action.
+export async function deletePatient(req: AuthRequest, res: Response) {
+  const clinicId = req.user!.clinicId;
+  const patientId = req.params.id as string;
+
+  if (req.user!.role !== "ADMIN" && req.user!.role !== "DOCTOR") {
+    res.status(403).json({ error: "Only admins and doctors can delete patients" });
+    return;
+  }
+
+  const existing = await prisma.patient.findFirst({
+    where: { id: patientId, clinicId, deletedAt: null },
+  });
+
+  if (!existing) {
+    res.status(404).json({ error: "Patient not found" });
+    return;
+  }
+
+  await prisma.patient.update({
+    where: { id: patientId },
+    data: { deletedAt: new Date() },
+  });
+
+  res.json({ message: "Patient removed" });
 }

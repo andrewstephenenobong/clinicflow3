@@ -26,23 +26,24 @@ export async function getStats(req: AuthRequest, res: Response) {
         clinicId,
         status: "SEEN",
         checkedInAt: { gte: startOfDay, lte: endOfDay },
+        deletedAt: null,
       },
     }),
-    // All check-ins today
     prisma.visit.count({
       where: {
         clinicId,
         checkedInAt: { gte: startOfDay, lte: endOfDay },
+        deletedAt: null,
       },
     }),
     // Total registered patients
-    prisma.patient.count({ where: { clinicId } }),
+    prisma.patient.count({ where: { clinicId, deletedAt: null } }),
     // Available beds
-    prisma.bed.count({ where: { clinicId, status: "AVAILABLE" } }),
+    prisma.bed.count({ where: { clinicId, status: "AVAILABLE", deletedAt: null } }),
     // Total beds
-    prisma.bed.count({ where: { clinicId } }),
+    prisma.bed.count({ where: { clinicId, deletedAt: null } }),
     // Total staff
-    prisma.user.count({ where: { clinicId } }),
+    prisma.user.count({ where: { clinicId, deletedAt: null } }),
   ]);
 
   res.json({

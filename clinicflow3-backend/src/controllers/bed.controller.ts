@@ -8,7 +8,7 @@ export async function getBeds(req: AuthRequest, res: Response) {
   const clinicId = req.user!.clinicId;
 
   const beds = await prisma.bed.findMany({
-    where: { clinicId },
+    where: { clinicId, deletedAt: null },
     include: {
       patient: { select: { id: true, name: true } },
     },
@@ -30,7 +30,7 @@ export async function assignablePatients(req: AuthRequest, res: Response) {
 
   // Every visitId already consumed by an admission in this clinic.
   const consumed = await prisma.admission.findMany({
-    where: { clinicId, visitId: { not: null } },
+    where: { clinicId, visitId: { not: null }, deletedAt: null },
     select: { visitId: true },
   });
   const consumedVisitIds = consumed
@@ -41,8 +41,9 @@ export async function assignablePatients(req: AuthRequest, res: Response) {
   const patients = await prisma.patient.findMany({
     where: {
       clinicId,
+      deletedAt: null,
       visits: {
-        some: { clinicId, status: "SEEN", id: { notIn: consumedVisitIds } },
+        some: { clinicId, status: "SEEN", id: { notIn: consumedVisitIds }, deletedAt: null },
       },
     },
     select: {
@@ -60,7 +61,7 @@ export async function admittedPatients(req: AuthRequest, res: Response) {
   const clinicId = req.user!.clinicId;
 
   const beds = await prisma.bed.findMany({
-    where: { clinicId, status: BedStatus.OCCUPIED, patientId: { not: null } },
+    where: { clinicId, status: BedStatus.OCCUPIED, patientId: { not: null }, deletedAt: null },
     include: {
       patient: {
         select: { id: true, name: true, age: true, gender: true, phone: true },
@@ -83,7 +84,7 @@ export async function createBed(req: AuthRequest, res: Response) {
   }
 
   const existing = await prisma.bed.findFirst({
-    where: { clinicId, bedNumber: String(bedNumber).trim() },
+    where: { clinicId, bedNumber: String(bedNumber).trim(), deletedAt: null },
   });
 
   if (existing) {
@@ -121,7 +122,7 @@ export async function assignBed(req: AuthRequest, res: Response) {
     return;
   }
 
-  const bed = await prisma.bed.findFirst({ where: { id: bedId, clinicId } });
+  const bed = await prisma.bed.findFirst({ where: { id: bedId, clinicId, deletedAt: null } });
   if (!bed) {
     res.status(404).json({ error: "Bed not found" });
     return;
@@ -132,7 +133,7 @@ export async function assignBed(req: AuthRequest, res: Response) {
   }
 
   const patient = await prisma.patient.findFirst({
-    where: { id: patientId, clinicId },
+    where: { id: patientId, clinicId, deletedAt: null },
   });
   if (!patient) {
     res.status(404).json({ error: "Patient not found" });
@@ -142,7 +143,7 @@ export async function assignBed(req: AuthRequest, res: Response) {
   // Guard against double-admission: a patient with an OPEN admission cannot be
   // admitted to another bed. Enforced on the action, not just the list.
   const existingOpen = await prisma.admission.findFirst({
-    where: { clinicId, patientId, dischargedAt: null },
+    where: { clinicId, patientId, dischargedAt: null, deletedAt: null },
   });
   if (existingOpen) {
     res.status(409).json({
@@ -156,7 +157,7 @@ export async function assignBed(req: AuthRequest, res: Response) {
   // not eligible — they need a fresh check-in -> seen cycle. (Belt-and-suspenders:
   // the assignable list already enforces this, but the action guards itself too.)
   const consumed = await prisma.admission.findMany({
-    where: { clinicId, patientId, visitId: { not: null } },
+    where: { clinicId, patientId, visitId: { not: null }, deletedAt: null },
     select: { visitId: true },
   });
   const consumedVisitIds = consumed
@@ -164,7 +165,7 @@ export async function assignBed(req: AuthRequest, res: Response) {
     .filter((id): id is string => id !== null);
 
   const eligibleVisit = await prisma.visit.findFirst({
-    where: { clinicId, patientId, status: "SEEN", id: { notIn: consumedVisitIds } },
+    where: { clinicId, patientId, status: "SEEN", id: { notIn: consumedVisitIds }, deletedAt: null },
     orderBy: { seenAt: "desc" },
   });
 
@@ -215,7 +216,7 @@ export async function dischargeBed(req: AuthRequest, res: Response) {
     return;
   }
 
-  const bed = await prisma.bed.findFirst({ where: { id: bedId, clinicId } });
+  const bed = await prisma.bed.findFirst({ where: { id: bedId, clinicId, deletedAt: null } });
   if (!bed) {
     res.status(404).json({ error: "Bed not found" });
     return;
@@ -226,7 +227,7 @@ export async function dischargeBed(req: AuthRequest, res: Response) {
   // Find the open admission for the patient currently in this bed (if any).
   const openAdmission = bed.patientId
     ? await prisma.admission.findFirst({
-        where: { clinicId, patientId: bed.patientId, bedId: bed.id, dischargedAt: null },
+        where: { clinicId, patientId: bed.patientId, bedId: bed.id, dischargedAt: null, deletedAt: null },
         orderBy: { admittedAt: "desc" },
       })
     : null;
@@ -264,7 +265,7 @@ export async function patientAdmissions(req: AuthRequest, res: Response) {
   const patientId = req.params.patientId as string;
 
   const patient = await prisma.patient.findFirst({
-    where: { id: patientId, clinicId },
+    where: { id: patientId, clinicId, deletedAt: null },
   });
   if (!patient) {
     res.status(404).json({ error: "Patient not found" });
@@ -272,7 +273,7 @@ export async function patientAdmissions(req: AuthRequest, res: Response) {
   }
 
   const admissions = await prisma.admission.findMany({
-    where: { clinicId, patientId },
+    where: { clinicId, patientId, deletedAt: null },
     orderBy: { admittedAt: "desc" },
   });
 
@@ -285,7 +286,7 @@ export async function updateBed(req: AuthRequest, res: Response) {
   const bedId = req.params.id as string;
   const { bedNumber, ward } = req.body;
 
-  const bed = await prisma.bed.findFirst({ where: { id: bedId, clinicId } });
+  const bed = await prisma.bed.findFirst({ where: { id: bedId, clinicId, deletedAt: null } });
   if (!bed) {
     res.status(404).json({ error: "Bed not found" });
     return;
@@ -293,7 +294,7 @@ export async function updateBed(req: AuthRequest, res: Response) {
 
   if (bedNumber !== undefined && String(bedNumber).trim() !== bed.bedNumber) {
     const clash = await prisma.bed.findFirst({
-      where: { clinicId, bedNumber: String(bedNumber).trim() },
+      where: { clinicId, bedNumber: String(bedNumber).trim(), deletedAt: null },
     });
     if (clash) {
       res.status(409).json({ error: `Bed ${bedNumber} already exists` });
@@ -318,12 +319,15 @@ export async function removeBed(req: AuthRequest, res: Response) {
   const clinicId = req.user!.clinicId;
   const bedId = req.params.id as string;
 
-  const bed = await prisma.bed.findFirst({ where: { id: bedId, clinicId } });
+  const bed = await prisma.bed.findFirst({ where: { id: bedId, clinicId, deletedAt: null } });
   if (!bed) {
     res.status(404).json({ error: "Bed not found" });
     return;
   }
 
-  await prisma.bed.delete({ where: { id: bedId } });
+  await prisma.bed.update({
+    where: { id: bedId },
+    data: { deletedAt: new Date() },
+  });
   res.json({ message: "Bed removed" });
 }

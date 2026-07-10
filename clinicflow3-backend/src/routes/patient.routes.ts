@@ -5,6 +5,7 @@ import {
   getPatient,
   createPatient,
   updatePatient,
+  deletePatient,
 } from "../controllers/patient.controller";
 import { requireAuth } from "../middleware/auth";
 
@@ -17,5 +18,6 @@ router.get("/search", searchPatients); // MUST be before /:id
 router.get("/:id", getPatient);
 router.post("/", createPatient);
 router.patch("/:id", updatePatient);
+router.delete("/:id", deletePatient);
 
 export default router;
