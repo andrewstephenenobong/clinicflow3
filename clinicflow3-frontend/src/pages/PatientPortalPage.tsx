@@ -1,17 +1,29 @@
-import { ClipboardList, Pill, UserCog, User, CreditCard, Lock } from "lucide-react";
+import { ClipboardList, Pill, UserCog, User, CreditCard, Lock, CalendarClock, FileText, FileBarChart, HeartPulse } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import { PageHeader } from "../components/ui/PageHeader";
 
+// Appointments, documents, reports, and health-summary sections are UI-ready
+// placeholders — none of these have backend endpoints yet.
+// TODO(backend): wire each card to its real endpoint once available
+// (appointments, documents, reports); Payments additionally needs a
+// payment-provider integration.
 export function PatientPortalPage() {
   return (
     <div className="max-w-4xl mx-auto space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-slate-900">Patient Portal</h1>
-        <p className="text-sm text-slate-500 mt-1">
-          Read-only patient-facing views — medical history, prescriptions, and appointments.
-        </p>
-      </div>
+      <PageHeader
+        title="Patient Portal"
+        description="Read-only patient-facing views — medical history, prescriptions, appointments, and more."
+      />
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <PortalCard
+          Icon={CalendarClock}
+          title="Appointments"
+          description="Upcoming and past appointments with the clinic."
+          badge="Coming Soon"
+          color="purple"
+          disabled
+        />
         <PortalCard
           Icon={ClipboardList}
           title="Medical History"
@@ -32,6 +44,36 @@ export function PatientPortalPage() {
           description="Contact info and profile of your assigned physician."
           badge="Read-only"
           color="purple"
+        />
+        <PortalCard
+          Icon={ClipboardList}
+          title="Visit History"
+          description="A timeline of past visits, reasons, and outcomes."
+          badge="Read-only"
+          color="slate"
+        />
+        <PortalCard
+          Icon={FileText}
+          title="Documents"
+          description="Discharge summaries, referral letters, and signed consent forms."
+          badge="Coming Soon"
+          color="slate"
+          disabled
+        />
+        <PortalCard
+          Icon={FileBarChart}
+          title="Reports"
+          description="Lab and diagnostic reports shared by your care team."
+          badge="Coming Soon"
+          color="amber"
+          disabled
+        />
+        <PortalCard
+          Icon={HeartPulse}
+          title="Health Summary"
+          description="A snapshot of vitals, allergies, and chronic conditions."
+          badge="Read-only"
+          color="emerald"
         />
         <PortalCard
           Icon={User}

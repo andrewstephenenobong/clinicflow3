@@ -9,7 +9,6 @@ import {
   UserCog,
   Building2,
   ListOrdered,
-  ClipboardList,
   FileText,
   Settings,
   AlertTriangle,
@@ -18,6 +17,17 @@ import type { LucideIcon } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { dashboardApi, queueApi } from "../services/api";
 import { WelcomeBanner } from "../components/ui/WelcomeBanner";
+import { PageHeader } from "../components/ui/PageHeader";
+import { ErrorState } from "../components/ui/ErrorState";
+import { EmptyState } from "../components/ui/EmptyState";
+import { SkeletonLine, SkeletonStatGrid } from "../components/ui/Skeleton";
+
+// Extracted as a plain helper (not inline in render) so the impure Date.now()
+// call is isolated from the component body, matching the pattern already
+// used elsewhere (e.g. QueuePage's waitingMinutes helper).
+function waitingMinutesSince(checkedInAt: string): number {
+  return Math.floor((Date.now() - new Date(checkedInAt).getTime()) / 60000);
+}
 
 function StatCard({
   label,
@@ -80,7 +90,7 @@ function QuickActionCard({
 export function DashboardPage() {
   const { currentClinic } = useAuth();
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ["dashboard", "stats"],
     queryFn: () => dashboardApi.getStats(),
   });
@@ -92,10 +102,24 @@ export function DashboardPage() {
 
   if (isLoading) {
     return (
-      <div className="max-w-5xl mx-auto">
-        <div className="flex items-center justify-center py-20 text-sm text-slate-400">
-          Loading dashboard...
+      <div className="max-w-5xl mx-auto space-y-8">
+        <div className="flex items-start justify-between">
+          <div className="space-y-2">
+            <SkeletonLine className="h-7 w-40" />
+            <SkeletonLine className="h-4 w-56" />
+          </div>
         </div>
+        <SkeletonStatGrid count={4} />
+        <SkeletonStatGrid count={3} />
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="max-w-5xl mx-auto">
+        <PageHeader title="Dashboard" />
+        <ErrorState message="We couldn't load your clinic's stats." onRetry={() => refetch()} />
       </div>
     );
   }
@@ -112,21 +136,19 @@ export function DashboardPage() {
     <div className="max-w-5xl mx-auto space-y-8">
       {stats?.totalPatients === 0 && <WelcomeBanner />}
 
-      <div className="flex items-start justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900">Dashboard</h1>
-          <p className="text-sm text-slate-500 mt-1">
-            {currentClinic?.name} · Operational overview
-          </p>
-        </div>
-        <Link
-          to="/queue"
-          className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-semibold shadow-sm transition-colors"
-        >
-          <ListOrdered size={15} />
-          View Queue
-        </Link>
-      </div>
+      <PageHeader
+        title="Dashboard"
+        description={`${currentClinic?.name ?? ""} · Operational overview`}
+        actions={
+          <Link
+            to="/queue"
+            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-semibold shadow-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
+          >
+            <ListOrdered size={15} />
+            View Queue
+          </Link>
+        }
+      />
 
       {emergencyNow > 0 && (
         <div className="bg-red-50 border-2 border-red-400 rounded-xl px-5 py-4 flex items-center gap-4">
@@ -194,17 +216,14 @@ export function DashboardPage() {
           </span>
         </div>
         {waitingNow === 0 ? (
-          <div className="px-5 py-8 text-center text-sm text-slate-400">
-            No active patients in queue.
-          </div>
+          <EmptyState title="No active patients in queue" description="Checked-in patients waiting to be seen will appear here." />
         ) : (
           <ul className="divide-y divide-slate-100">
             {(queueData?.visits ?? [])
               .filter((v) => v.status === "WAITING")
               .slice(0, 5)
               .map((v) => {
-                const waitMs = Date.now() - new Date(v.checkedInAt).getTime();
-                const waitMin = Math.floor(waitMs / 60000);
+                const waitMin = waitingMinutesSince(v.checkedInAt);
                 const waitColor =
                   waitMin >= 60
                     ? "text-red-700 bg-red-50 border-red-200"

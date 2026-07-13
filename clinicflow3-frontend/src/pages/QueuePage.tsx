@@ -299,13 +299,10 @@ function CheckInDialog({ onClose, onSuccess }: CheckInDialogProps) {
   useEffect(() => {
     if (selectedPatient || isNewPatient) return;
     if (name.trim().length < 2) {
-      setSearchResults([]);
-      setShowDropdown(false);
-      setIsSearching(false);
       return;
     }
 
-    setIsSearching(true);
+    const searchingTimer = setTimeout(() => setIsSearching(true), 0);
     const timer = setTimeout(async () => {
       try {
         const { patients } = await patientApi.search(name.trim());
@@ -318,7 +315,10 @@ function CheckInDialog({ onClose, onSuccess }: CheckInDialogProps) {
       }
     }, 300);
 
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(searchingTimer);
+      clearTimeout(timer);
+    };
   }, [name, selectedPatient, isNewPatient]);
 
   const resetIdentity = () => {
@@ -442,7 +442,7 @@ function CheckInDialog({ onClose, onSuccess }: CheckInDialogProps) {
                 <p className="text-xs text-slate-400 mt-1">Searching…</p>
               )}
 
-              {showDropdown && !isNewPatient && (
+              {showDropdown && !isNewPatient && name.trim().length >= 2 && (
                 <div className="absolute z-10 left-0 right-0 mt-1 bg-white border border-slate-200 rounded-md shadow-lg max-h-52 overflow-y-auto">
                   {searchResults.length > 0 && searchResults.map((p) => (
                     <button

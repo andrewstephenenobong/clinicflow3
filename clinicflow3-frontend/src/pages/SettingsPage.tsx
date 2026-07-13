@@ -1,11 +1,15 @@
-import { useEffect, useState } from "react";
-import { Eye, EyeOff } from "lucide-react";
+import { useState } from "react";
+import { Eye, EyeOff, ShieldCheck, Phone } from "lucide-react";
 import { useOutletContext } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
 import { staffApi } from "../services/api";
 import { ConfirmDialog } from "../components/ui/ConfirmDialog";
+import { EmptyState } from "../components/ui/EmptyState";
+import { SkeletonList } from "../components/ui/Skeleton";
+import { DEPARTMENTS, DEPARTMENT_TO_ROLE, ROLE_TO_DEPARTMENT } from "../data/departments";
+import type { Department } from "../data/departments";
 import type { ClinicContext, Bed } from "../components/layout/AppShell";
 
 export function SettingsPage() {
@@ -51,10 +55,14 @@ function ClinicProfileSection({
   const [isSaving, setIsSaving] = useState(false);
 
   // Keep the form in sync if the clinic loads/changes from context
-  // (e.g. after first rehydrate from /me).
-  useEffect(() => {
+  // (e.g. after first rehydrate from /me). Adjusted during render — the
+  // recommended alternative to resetting derived state inside an effect —
+  // rather than calling setState synchronously inside a useEffect body.
+  const [syncedClinic, setSyncedClinic] = useState(clinic);
+  if (clinic !== syncedClinic) {
+    setSyncedClinic(clinic);
     setDraft(clinic);
-  }, [clinic]);
+  }
 
   const dirty =
     draft.name !== clinic.name ||
@@ -325,7 +333,7 @@ function StaffSection() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [role, setRole] = useState("DOCTOR");
+  const [department, setDepartment] = useState<Department>("Doctor");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
 
@@ -354,11 +362,13 @@ function StaffSection() {
     setIsSubmitting(true);
     setError("");
     try {
-      await staffApi.create(name.trim(), email.trim(), password, role);
+      // Department is a frontend-only grouping; we map it to the nearest
+      // backend role since Role doesn't yet support the full department list.
+      await staffApi.create(name.trim(), email.trim(), password, DEPARTMENT_TO_ROLE[department]);
       queryClient.invalidateQueries({ queryKey: ["staff"] });
       showToast("Staff member added");
       setShowAdd(false);
-      setName(""); setEmail(""); setPassword(""); setRole("DOCTOR"); setShowPassword(false);
+      setName(""); setEmail(""); setPassword(""); setDepartment("Doctor"); setShowPassword(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to add staff.");
     } finally {
@@ -375,7 +385,7 @@ function StaffSection() {
       await staffApi.remove(id);
       queryClient.invalidateQueries({ queryKey: ["staff"] });
       showToast("Staff member removed");
-    } catch (err) {
+    } catch {
       showToast("Failed to remove staff member", "error");
     }
   };
@@ -443,17 +453,20 @@ function StaffSection() {
               </div>
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-700 mb-1">Role</label>
+              <label className="block text-xs font-medium text-slate-700 mb-1">Department</label>
               <select
-                value={role}
-                onChange={(e) => setRole(e.target.value)}
+                value={department}
+                onChange={(e) => setDepartment(e.target.value as Department)}
                 className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm
                            bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
-                <option value="DOCTOR">Doctor</option>
-                <option value="RECEPTIONIST">Receptionist</option>
-                <option value="SECURITY_OFFICER">Security Officer</option>
+                {DEPARTMENTS.map((d) => (
+                  <option key={d} value={d}>{d}</option>
+                ))}
               </select>
+              <p className="text-[11px] text-slate-400 mt-1">
+                Maps to account role: {roleLabel[DEPARTMENT_TO_ROLE[department]]}
+              </p>
             </div>
           </div>
           {error && (
@@ -482,39 +495,57 @@ function StaffSection() {
 
       {/* Staff list */}
       {isLoading ? (
-        <div className="px-5 py-8 text-center text-sm text-slate-400">Loading staff...</div>
+        <div className="p-4"><SkeletonList rows={3} /></div>
       ) : staff.length === 0 ? (
-        <div className="px-5 py-8 text-center text-sm text-slate-400">
-          No staff yet. Add your first above.
-        </div>
+        <EmptyState title="No staff yet" description="Add your first team member above." />
       ) : (
         <ul className="divide-y divide-slate-100">
-          {staff.map((member) => (
-            <li key={member.id} className="px-5 py-3 flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-slate-900">{member.name}</p>
-                <p className="text-xs text-slate-500">{member.email}</p>
-              </div>
-              <div className="flex items-center gap-3">
-                <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">
-                  {roleLabel[member.role] ?? member.role}
-                </span>
-                <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
-                  member.status === "ACTIVE"
-                    ? "bg-emerald-100 text-emerald-700"
-                    : "bg-rose-100 text-rose-700"
-                }`}>
-                  {member.status}
-                </span>
-                <button
-                  onClick={() => setPendingRemove({ id: member.id, name: member.name })}
-                  className="text-xs font-semibold text-rose-600 hover:text-rose-700"
+          {staff.map((member) => {
+            const department = ROLE_TO_DEPARTMENT[member.role] ?? member.role;
+            return (
+              <li key={member.id} className="px-5 py-3 flex items-center gap-3">
+                <div
+                  aria-hidden="true"
+                  className="w-9 h-9 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-sm flex-shrink-0"
                 >
-                  Remove
-                </button>
-              </div>
-            </li>
-          ))}
+                  {member.name.charAt(0).toUpperCase()}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-slate-900 truncate">{member.name}</p>
+                  <p className="text-xs text-slate-500 flex items-center gap-1 flex-wrap">
+                    <Phone size={10} className="text-slate-400" />
+                    {member.email}
+                    <span className="inline-flex items-center gap-1 text-slate-400 ml-1">
+                      <ShieldCheck size={10} />
+                      Credentials on file
+                    </span>
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700">
+                    {department}
+                  </span>
+                  <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">
+                    {roleLabel[member.role] ?? member.role}
+                  </span>
+                  <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+                    member.status === "ACTIVE"
+                      ? "bg-emerald-100 text-emerald-700"
+                      : "bg-rose-100 text-rose-700"
+                  }`}>
+                    {member.status}
+                  </span>
+                  <button
+                    onClick={() => setPendingRemove({ id: member.id, name: member.name })}
+                    aria-label={`Remove ${member.name}`}
+                    className="text-xs font-semibold text-rose-600 hover:text-rose-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-400 rounded"
+                  >
+                    Remove
+                  </button>
+                </div>
+              </li>
+            );
+          })}
         </ul>
       )}
 

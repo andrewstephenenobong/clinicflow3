@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { bedApi, patientApi } from "../services/api";
 import { useToast } from "../context/ToastContext";
+import { AdmissionHistory } from "../components/patient/AdmissionHistory";
 
 function admittedDuration(iso: string | null): string {
   if (!iso) return "—";
@@ -25,13 +26,6 @@ function admittedOn(iso: string | null): string {
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString([], {
     year: "numeric", month: "short", day: "numeric",
-  });
-}
-
-function formatDateTime(iso: string | null): string {
-  if (!iso) return "";
-  return new Date(iso).toLocaleString([], {
-    day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit",
   });
 }
 
@@ -328,82 +322,17 @@ function PatientPanel({
                 </div>
 
                 {/* Admission history — reads the admissions endpoint */}
-                <AdmissionHistory patientId={patientId} />
+                <div>
+                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
+                    Admission history
+                  </p>
+                  <AdmissionHistory patientId={patientId} />
+                </div>
               </>
             )}
           </div>
         )}
       </div>
-    </div>
-  );
-}
-
-// ── Admission history section ────────────────────────────────────────────────
-
-function AdmissionHistory({ patientId }: { patientId: string }) {
-  const { data, isLoading } = useQuery({
-    queryKey: ["patient", patientId, "admissions"],
-    queryFn: () => bedApi.admissions(patientId),
-  });
-
-  const admissions = data?.admissions ?? [];
-
-  return (
-    <div>
-      <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
-        Admission history
-      </p>
-
-      {isLoading ? (
-        <p className="text-xs text-slate-400">Loading admissions…</p>
-      ) : admissions.length === 0 ? (
-        <p className="text-xs text-slate-400">No admissions on record.</p>
-      ) : (
-        <ul className="space-y-2">
-          {admissions.map((a) => {
-            const isOpen = a.dischargedAt === null;
-            return (
-              <li
-                key={a.id}
-                className={`border rounded-md px-3 py-2 ${
-                  isOpen ? "bg-rose-50 border-rose-200" : "bg-slate-50 border-slate-200"
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <p className="text-sm font-semibold text-slate-800">
-                    Bed {a.bedNumber} · {a.ward} ward
-                  </p>
-                  <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
-                    isOpen ? "bg-rose-100 text-rose-700" : "bg-slate-100 text-slate-600"
-                  }`}>
-                    {isOpen ? "Admitted" : "Discharged"}
-                  </span>
-                </div>
-
-                <p className="text-xs text-slate-500 mt-1">
-                  In: {formatDateTime(a.admittedAt)}
-                </p>
-                {a.dischargedAt && (
-                  <p className="text-xs text-slate-500">
-                    Out: {formatDateTime(a.dischargedAt)}
-                  </p>
-                )}
-
-                {a.admissionNote && (
-                  <p className="text-xs text-slate-700 mt-1">
-                    <span className="font-semibold">Reason: </span>{a.admissionNote}
-                  </p>
-                )}
-                {a.dischargeNote && (
-                  <p className="text-xs text-slate-700 mt-0.5">
-                    <span className="font-semibold">Condition at discharge: </span>{a.dischargeNote}
-                  </p>
-                )}
-              </li>
-            );
-          })}
-        </ul>
-      )}
     </div>
   );
 }

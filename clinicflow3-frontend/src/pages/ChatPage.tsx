@@ -1,4 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { Paperclip, Mic, Video, Sparkles, Send } from "lucide-react";
+import { PageHeader } from "../components/ui/PageHeader";
 
 interface Message {
   id: string;
@@ -28,17 +30,37 @@ const PLACEHOLDER_MESSAGES: Message[] = [
   },
 ];
 
+// Messaging is UI-only — there is no chat backend/websocket layer yet.
+// TODO(backend): wire to a real-time messaging endpoint (e.g. websockets)
+// for sending/receiving; file attachments and voice/video calls need
+// dedicated media infrastructure before they can be enabled.
 export function ChatPage() {
   const [messages] = useState<Message[]>(PLACEHOLDER_MESSAGES);
   const [draft, setDraft] = useState("");
+  const [showTyping, setShowTyping] = useState(false);
+
+  // Simulated typing indicator so the layout/interaction is demonstrable
+  // without a real transport. Only the deferred (setTimeout) callback sets
+  // state, so the effect body itself stays free of synchronous setState.
+  useEffect(() => {
+    if (!draft) {
+      return;
+    }
+    const showTimer = setTimeout(() => setShowTyping(true), 0);
+    const hideTimer = setTimeout(() => setShowTyping(false), 1500);
+    return () => {
+      clearTimeout(showTimer);
+      clearTimeout(hideTimer);
+    };
+  }, [draft]);
 
   return (
     <div className="max-w-3xl mx-auto flex flex-col" style={{ height: "calc(100vh - 9rem)" }}>
       <div className="mb-4 flex-shrink-0">
-        <h1 className="text-2xl font-bold text-slate-900">Doctor–Patient Chat</h1>
-        <p className="text-sm text-slate-500 mt-1">
-          Secure messaging between clinical staff and patients. (UI placeholder — real-time messaging coming soon)
-        </p>
+        <PageHeader
+          title="Doctor–Patient Chat"
+          description="Secure messaging between clinical staff and patients."
+        />
       </div>
 
       <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 mb-4 flex-shrink-0">
@@ -67,13 +89,40 @@ export function ChatPage() {
       </div>
 
       <div className="flex-1 bg-white border border-slate-200 rounded-xl overflow-hidden flex flex-col min-h-0">
-        <div className="px-4 py-3 border-b border-slate-200 bg-slate-50 flex items-center gap-3 flex-shrink-0">
-          <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-sm">
-            A
+        <div className="px-4 py-3 border-b border-slate-200 bg-slate-50 flex items-center justify-between gap-3 flex-shrink-0">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-sm flex-shrink-0">
+              A
+            </div>
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-slate-900 truncate">Amina Bello</p>
+              <p className="text-xs text-slate-500 truncate">Patient ID: P-00001 · Last seen: 2 min ago</p>
+            </div>
           </div>
-          <div>
-            <p className="text-sm font-semibold text-slate-900">Amina Bello</p>
-            <p className="text-xs text-slate-500">Patient ID: P-00001 · Last seen: 2 min ago</p>
+          <div className="flex items-center gap-1.5 flex-shrink-0">
+            <span
+              title="AI-assisted triage suggestions (placeholder)"
+              className="inline-flex items-center gap-1 text-xs font-semibold text-purple-700 bg-purple-50 border border-purple-200 rounded-full px-2 py-0.5"
+            >
+              <Sparkles size={11} />
+              AI
+            </span>
+            <button
+              disabled
+              title="Voice call is not yet available"
+              aria-label="Start voice call"
+              className="w-8 h-8 flex items-center justify-center rounded-full text-slate-300 cursor-not-allowed"
+            >
+              <Mic size={15} />
+            </button>
+            <button
+              disabled
+              title="Video call is not yet available"
+              aria-label="Start video call"
+              className="w-8 h-8 flex items-center justify-center rounded-full text-slate-300 cursor-not-allowed"
+            >
+              <Video size={15} />
+            </button>
           </div>
         </div>
 
@@ -101,20 +150,40 @@ export function ChatPage() {
               </div>
             </div>
           ))}
+
+          {showTyping && (
+            <div className="flex justify-start" aria-live="polite">
+              <div className="bg-slate-100 rounded-2xl rounded-bl-sm px-4 py-2.5 flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-bounce [animation-delay:-0.2s]" />
+                <span className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-bounce [animation-delay:-0.1s]" />
+                <span className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-bounce" />
+              </div>
+            </div>
+          )}
         </div>
 
-        <div className="px-4 py-3 border-t border-slate-200 flex gap-2 flex-shrink-0">
+        <div className="px-4 py-3 border-t border-slate-200 flex items-center gap-2 flex-shrink-0">
+          <button
+            disabled
+            title="File attachments are not yet available"
+            aria-label="Attach file"
+            className="w-9 h-9 flex items-center justify-center rounded-lg text-slate-300 cursor-not-allowed flex-shrink-0"
+          >
+            <Paperclip size={16} />
+          </button>
           <input
             type="text"
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             placeholder="Type a message… (placeholder — not functional)"
+            aria-label="Message"
             className="flex-1 px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
           <button
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-blue-700 transition-colors"
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-blue-700 transition-colors flex items-center gap-1.5 flex-shrink-0"
             onClick={() => setDraft("")}
           >
+            <Send size={13} />
             Send
           </button>
         </div>

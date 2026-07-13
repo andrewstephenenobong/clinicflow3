@@ -1,10 +1,33 @@
 import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { Search, Phone, MapPin, User } from "lucide-react";
+import { Search, Phone, MapPin, User, FileText, StickyNote, Pill } from "lucide-react";
 import { Badge } from "../components/ui/Badge";
+import { EmptyState } from "../components/ui/EmptyState";
+import { ErrorState } from "../components/ui/ErrorState";
+import { PageHeader } from "../components/ui/PageHeader";
+import { SkeletonList } from "../components/ui/Skeleton";
+import { PatientTimeline } from "../components/patient/PatientTimeline";
+import type { TimelineEvent } from "../components/patient/PatientTimeline";
+import { DoctorAssignment } from "../components/patient/DoctorAssignment";
+import { AdmissionHistory } from "../components/patient/AdmissionHistory";
 import { patientApi } from "../services/api";
-import type { ApiPatient } from "../services/api";
+import type { ApiPatient, ApiPatientDetail } from "../services/api";
 import type { Triage } from "../types";
+
+function buildTimelineEvents(patient: ApiPatientDetail): TimelineEvent[] {
+  const lastVisit = patient.visits[0];
+  return [
+    { stage: "Registered", timestamp: patient.createdAt },
+    { stage: "Checked In", timestamp: lastVisit?.checkedInAt ?? null },
+    { stage: "Waiting", timestamp: lastVisit?.status === "WAITING" ? lastVisit.checkedInAt : (lastVisit ? lastVisit.checkedInAt : null) },
+    { stage: "Called", timestamp: lastVisit && lastVisit.status !== "WAITING" ? lastVisit.checkedInAt : null },
+    { stage: "Seen", timestamp: lastVisit?.seenAt ?? null },
+    { stage: "Admitted", timestamp: null, note: "See Admission History below" },
+    { stage: "Discharged", timestamp: null },
+    { stage: "Follow-up", timestamp: null },
+  ];
+}
 
 function triageVariant(t: Triage) {
   return t === "EMERGENCY" ? "emergency" : t === "URGENT" ? "urgent" : "routine";
@@ -73,7 +96,7 @@ export function PatientsPage() {
     return () => clearTimeout(t);
   }, [search]);
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ["patients"],
     queryFn: () => patientApi.getAll(),
   });
@@ -89,23 +112,27 @@ export function PatientsPage() {
   if (isLoading) {
     return (
       <div className="max-w-5xl mx-auto">
-        <div className="flex items-center justify-center py-20 text-sm text-slate-400">
-          Loading patients...
-        </div>
+        <PageHeader title="Patients" description="Loading registered patients…" />
+        <SkeletonList rows={6} />
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="max-w-5xl mx-auto">
+        <PageHeader title="Patients" />
+        <ErrorState message="We couldn't load the patient list." onRetry={() => refetch()} />
       </div>
     );
   }
 
   return (
     <div className="max-w-5xl mx-auto">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900">Patients</h1>
-          <p className="text-sm text-slate-500 mt-1">
-            {patients.length} {patients.length === 1 ? "patient" : "patients"} registered
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        title="Patients"
+        description={`${patients.length} ${patients.length === 1 ? "patient" : "patients"} registered`}
+      />
 
       <div className="mb-4 relative">
         <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -114,6 +141,7 @@ export function PatientsPage() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search by name, phone, or patient ID…"
+          aria-label="Search patients"
           className="w-full max-w-sm pl-9 pr-3 py-2 border border-slate-300 rounded-md text-sm
                      focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
         />
@@ -121,9 +149,11 @@ export function PatientsPage() {
 
       <div className="bg-white border border-slate-200 rounded-lg overflow-hidden">
         {filtered.length === 0 ? (
-          <div className="px-5 py-10 text-center text-sm text-slate-400">
-            {search ? "No patients match that search." : "No patients registered."}
-          </div>
+          <EmptyState
+            Icon={User}
+            title={search ? "No patients match that search" : "No patients registered yet"}
+            description={search ? "Try a different name, phone number, or patient ID." : "Patients appear here once checked in from the Queue page."}
+          />
         ) : (
           <ul>
             {filtered.map((patient) => (
@@ -137,6 +167,15 @@ export function PatientsPage() {
           </ul>
         )}
       </div>
+    </div>
+  );
+}
+
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">{title}</p>
+      {children}
     </div>
   );
 }
@@ -162,7 +201,8 @@ function VisitHistory({ patientId }: { patientId: string }) {
   const hasMedicalFlags = patient.allergies || patient.chronicConditions;
 
   return (
-    <div className="px-5 pb-5 bg-slate-50/50 space-y-4">
+    <div className="px-5 pb-5 bg-slate-50/50 space-y-5">
+      {/* Sticky-style safety banner — kept prominent above everything else */}
       {hasMedicalFlags && (
         <div className="space-y-2">
           {patient.allergies && (
@@ -186,34 +226,73 @@ function VisitHistory({ patientId }: { patientId: string }) {
         </div>
       )}
 
-      <div className="flex flex-wrap gap-4 text-xs text-slate-600">
-        {patient.bloodGroup && (
-          <span className="font-semibold">Blood: <span className="text-red-700">{patient.bloodGroup}</span></span>
-        )}
-        {patient.phone && (
-          <span className="flex items-center gap-1">
-            <Phone size={11} />
-            {patient.phone}
-          </span>
-        )}
-        {patient.address && (
-          <span className="flex items-center gap-1">
-            <MapPin size={11} />
-            {patient.address}
-          </span>
-        )}
-        {patient.nextOfKin && (
-          <span className="flex items-center gap-1">
-            <User size={11} />
-            Next of kin: {patient.nextOfKin}
-          </span>
-        )}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <Section title="Personal Details">
+          <div className="bg-white border border-slate-200 rounded-md px-3 py-2.5 space-y-1.5 text-sm">
+            <p className="flex items-center gap-1.5 text-slate-700">
+              <Phone size={11} className="text-slate-400" />
+              {patient.phone || "No phone on file"}
+            </p>
+            {patient.bloodGroup && (
+              <p className="text-slate-700">Blood group: <span className="font-semibold text-red-700">{patient.bloodGroup}</span></p>
+            )}
+          </div>
+        </Section>
+
+        <Section title="Address">
+          <div className="bg-white border border-slate-200 rounded-md px-3 py-2.5 text-sm text-slate-700 flex items-start gap-1.5">
+            <MapPin size={11} className="text-slate-400 mt-0.5 flex-shrink-0" />
+            {patient.address || "No address on file"}
+          </div>
+        </Section>
+
+        <Section title="Guardian">
+          <div className="bg-white border border-slate-200 rounded-md px-3 py-2.5 text-sm text-slate-700 flex items-start gap-1.5">
+            <User size={11} className="text-slate-400 mt-0.5 flex-shrink-0" />
+            {patient.nextOfKin || "Not recorded"}
+          </div>
+        </Section>
+
+        {/* Emergency contact isn't a distinct field on the backend yet — shown
+            as a clearly-labelled placeholder so the layout is ready. */}
+        {/* TODO(backend): add a dedicated emergencyContact field to Patient. */}
+        <Section title="Emergency Contact">
+          <div className="bg-white border border-dashed border-slate-300 rounded-md px-3 py-2.5 text-sm text-slate-400">
+            Not yet supported — reuses Guardian for now
+          </div>
+        </Section>
       </div>
 
-      <div>
-        <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
-          Visit History
-        </p>
+      <Section title="Assigned Doctor">
+        <DoctorAssignment compact />
+      </Section>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <Section title="Current Medications">
+          <div className="bg-white border border-dashed border-slate-300 rounded-md px-3 py-2.5 text-sm text-slate-400 flex items-center gap-1.5">
+            <Pill size={12} />
+            Not tracked yet
+          </div>
+        </Section>
+        <Section title="Notes">
+          <div className="bg-white border border-dashed border-slate-300 rounded-md px-3 py-2.5 text-sm text-slate-400 flex items-center gap-1.5">
+            <StickyNote size={12} />
+            Clinical notes live on individual visits below
+          </div>
+        </Section>
+      </div>
+
+      <Section title="Visit Timeline">
+        <div className="bg-white border border-slate-200 rounded-md px-4 py-3">
+          <PatientTimeline events={buildTimelineEvents(patient)} />
+        </div>
+      </Section>
+
+      <Section title="Admission History">
+        <AdmissionHistory patientId={patientId} />
+      </Section>
+
+      <Section title="Visit History">
         {patient.visits.length === 0 ? (
           <p className="text-xs text-slate-400">No visits on record.</p>
         ) : (
@@ -237,6 +316,16 @@ function VisitHistory({ patientId }: { patientId: string }) {
             ))}
           </ul>
         )}
+      </Section>
+
+      <div className="flex items-center gap-2 pt-1">
+        <Link
+          to="/consent"
+          className="inline-flex items-center gap-1.5 text-xs font-semibold text-blue-600 hover:text-blue-700 bg-white border border-blue-200 rounded-md px-3 py-1.5"
+        >
+          <FileText size={12} />
+          Consent Forms
+        </Link>
       </div>
     </div>
   );
