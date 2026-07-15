@@ -30,7 +30,7 @@ function issueToken(res: Response, payload: object) {
 export async function register(req: Request, res: Response) {
   try {
     const { clinicName, clinicEmail, clinicPhone, clinicAddress,
-            adminName, adminEmail, adminPassword } = req.body;
+      adminName, adminEmail, adminPassword } = req.body;
 
     if (!clinicName || !adminEmail || !adminPassword || !adminName) {
       res.status(400).json({ error: "Missing required fields (clinicName, adminName, adminEmail, adminPassword)" });
@@ -38,7 +38,7 @@ export async function register(req: Request, res: Response) {
     }
 
     if (typeof clinicName !== "string" || typeof adminName !== "string" ||
-        typeof adminEmail !== "string" || typeof adminPassword !== "string") {
+      typeof adminEmail !== "string" || typeof adminPassword !== "string") {
       res.status(400).json({ error: "Required fields must be strings" });
       return;
     }
