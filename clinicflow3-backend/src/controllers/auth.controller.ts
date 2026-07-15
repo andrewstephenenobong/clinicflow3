@@ -8,7 +8,10 @@ function issueToken(res: Response, payload: object) {
   const secret = process.env.JWT_SECRET;
   if (!secret) {
     console.error("❌ Configuration Error: JWT_SECRET environment variable is missing!");
-    throw new Error("JWT_SECRET environment variable is not configured on the server.");
+    const err = new Error("JWT_SECRET environment variable is not configured on the server.");
+    // Mark the error so callers can return a friendly, user-facing message
+    (err as any).code = "MISSING_JWT_SECRET";
+    throw err;
   }
   const expiresIn = (process.env.JWT_EXPIRES_IN ?? "7d") as jwt.SignOptions["expiresIn"];
   const token = jwt.sign(payload, secret, { expiresIn });
@@ -100,6 +103,22 @@ export async function register(req: Request, res: Response) {
     });
   } catch (error: any) {
     console.error("❌ Registration Error:", error);
+    if (error.code === "MISSING_JWT_SECRET") {
+      res.status(503).json({
+        error: "Service Unavailable",
+        message: "Authentication service temporarily unavailable. Please try again later or contact support.",
+      });
+      return;
+    }
+
+    if (error.code === "P2022") {
+      console.error("❌ Database schema mismatch:", error.meta);
+      res.status(503).json({
+        error: "Service Unavailable",
+        message: "The database schema is out of sync with the application. Please run the database migrations or contact the administrator.",
+      });
+      return;
+    }
 
     if (error.name === "PrismaClientInitializationError" || error.code === "P1001") {
       res.status(503).json({
@@ -196,6 +215,13 @@ export async function login(req: Request, res: Response) {
     });
   } catch (error: any) {
     console.error("❌ Login Error:", error);
+    if (error.code === "MISSING_JWT_SECRET") {
+      res.status(503).json({
+        error: "Service Unavailable",
+        message: "Authentication service temporarily unavailable. Please try again later or contact support.",
+      });
+      return;
+    }
 
     if (error.name === "PrismaClientInitializationError" || error.code === "P1001") {
       res.status(503).json({

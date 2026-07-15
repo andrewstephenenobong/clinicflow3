@@ -19,6 +19,17 @@ if (!process.env.JWT_SECRET) {
   console.warn("⚠️ Warning: JWT_SECRET environment variable is not defined!");
 }
 
+// Fail-fast in production when critical configuration is missing.
+if (process.env.NODE_ENV === "production") {
+  const required = ["DATABASE_URL", "JWT_SECRET"];
+  const missing = required.filter((k) => !process.env[k as keyof NodeJS.ProcessEnv]);
+  if (missing.length) {
+    console.error(`❌ Missing required environment variables in production: ${missing.join(", ")}`);
+    console.error("Exiting to avoid running with an insecure or non-functional configuration.");
+    process.exit(1);
+  }
+}
+
 const app = express();
 app.set("trust proxy", 1);
 
@@ -46,6 +57,20 @@ app.use(cors({
 }));
 
 app.use(express.json());
+// Friendly handler for malformed JSON bodies from clients (returns 400)
+app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  if (!err) return _next();
+  const isJsonParseError = err.type === "entity.parse.failed" || (err instanceof SyntaxError) || err.status === 400;
+  if (isJsonParseError) {
+    console.error("❌ JSON Parse Error:", err.message);
+    res.status(400).json({
+      error: "Invalid JSON",
+      message: "Request body contains malformed JSON. Please ensure your client sends valid JSON.",
+    });
+    return;
+  }
+  _next(err);
+});
 app.use(cookieParser());
 
 // Routes
