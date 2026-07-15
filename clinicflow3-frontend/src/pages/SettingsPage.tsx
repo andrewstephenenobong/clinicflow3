@@ -327,6 +327,7 @@ function BedRow({
 function StaffSection() {
   const queryClient = useQueryClient();
   const { showToast } = useToast();
+  const { currentUser } = useAuth();
 
   const [showAdd, setShowAdd] = useState(false);
   const [name, setName] = useState("");
@@ -336,6 +337,17 @@ function StaffSection() {
   const [department, setDepartment] = useState<Department>("Doctor");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
+
+  const handleToggleStatus = async (memberId: string, currentStatus: string) => {
+    const nextStatus = currentStatus === "ACTIVE" ? "SUSPENDED" : "ACTIVE";
+    try {
+      await staffApi.update(memberId, { status: nextStatus });
+      queryClient.invalidateQueries({ queryKey: ["staff"] });
+      showToast(`Staff status updated to ${nextStatus}`);
+    } catch (err) {
+      showToast("Failed to update staff status", "error");
+    }
+  };
 
   // Pending staff member to remove — null means the confirm dialog is closed
   const [pendingRemove, setPendingRemove] = useState<{ id: string; name: string } | null>(null);
@@ -535,13 +547,27 @@ function StaffSection() {
                   }`}>
                     {member.status}
                   </span>
-                  <button
-                    onClick={() => setPendingRemove({ id: member.id, name: member.name })}
-                    aria-label={`Remove ${member.name}`}
-                    className="text-xs font-semibold text-rose-600 hover:text-rose-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-400 rounded"
-                  >
-                    Remove
-                  </button>
+                  {member.id !== currentUser?.id && (
+                    <>
+                      <button
+                        onClick={() => handleToggleStatus(member.id, member.status)}
+                        className={`text-xs font-semibold ${
+                          member.status === "ACTIVE"
+                            ? "text-amber-600 hover:text-amber-700"
+                            : "text-emerald-600 hover:text-emerald-700"
+                        }`}
+                      >
+                        {member.status === "ACTIVE" ? "Suspend" : "Activate"}
+                      </button>
+                      <button
+                        onClick={() => setPendingRemove({ id: member.id, name: member.name })}
+                        aria-label={`Remove ${member.name}`}
+                        className="text-xs font-semibold text-rose-600 hover:text-rose-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-400 rounded"
+                      >
+                        Remove
+                      </button>
+                    </>
+                  )}
                 </div>
               </li>
             );
