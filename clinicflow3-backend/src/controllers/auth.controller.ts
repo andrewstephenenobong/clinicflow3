@@ -119,6 +119,8 @@ export async function register(req: Request, res: Response) {
 // POST /api/auth/login
 export async function login(req: Request, res: Response) {
   try {
+    // Log the incoming request body for debugging
+    console.log('🔍 Login request body:', req.body);
     const { email, password } = req.body;
 
     if (!email || !password) {
@@ -143,7 +145,16 @@ export async function login(req: Request, res: Response) {
       return;
     }
 
+    // Debug: log user retrieval
+    console.log('🔎 User fetched:', {
+      id: user?.id,
+      clinicId: user?.clinicId,
+      hasClinic: !!user?.clinic,
+    });
+
+    // Debug: password verification result (after checking user)
     const valid = await bcrypt.compare(password, user.passwordHash);
+    console.log('🔑 Password valid:', valid);
     if (!valid) {
       res.status(401).json({ error: "Invalid credentials" });
       return;
@@ -151,6 +162,13 @@ export async function login(req: Request, res: Response) {
 
     if (user.status === "SUSPENDED") {
       res.status(403).json({ error: "Account suspended. Contact your clinic admin." });
+      return;
+    }
+
+    // Ensure associated clinic exists
+    if (!user.clinic) {
+      console.error('❌ Login Error: User has no associated clinic');
+      res.status(400).json({ error: "Bad Request", message: "User is not linked to any clinic. Please ensure the user has a clinic association." });
       return;
     }
 
