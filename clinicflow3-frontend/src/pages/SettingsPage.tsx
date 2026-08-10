@@ -348,7 +348,11 @@ function StaffSection() {
       await staffApi.update(memberId, { status: nextStatus });
       queryClient.invalidateQueries({ queryKey: ["staff"] });
       showToast(`Staff status updated to ${nextStatus}`);
+ HEAD
     } catch {
+
+    } catch (err) {
+ 54081853a103537506e32c960c98854ab24b73c6
       showToast("Failed to update staff status", "error");
     }
   };
@@ -550,7 +554,10 @@ function StaffSection() {
                     <>
                       <button
                         onClick={() => handleToggleStatus(member.id, member.status)}
+HEAD
                         className={`text-xs font-semibold whitespace-nowrap ${
+                        className={`text-xs font-semibold ${
+ 54081853a103537506e32c960c98854ab24b73c6
                           member.status === "ACTIVE"
                             ? "text-amber-600 hover:text-amber-700"
                             : "text-emerald-600 hover:text-emerald-700"
@@ -561,7 +568,11 @@ function StaffSection() {
                       <button
                         onClick={() => setPendingRemove({ id: member.id, name: member.name })}
                         aria-label={`Remove ${member.name}`}
+HEAD
                         className="text-xs font-semibold text-rose-600 hover:text-rose-700 whitespace-nowrap focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-400 rounded"
+
+                        className="text-xs font-semibold text-rose-600 hover:text-rose-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-400 rounded"
+ 54081853a103537506e32c960c98854ab24b73c6
                       >
                         Remove
                       </button>
