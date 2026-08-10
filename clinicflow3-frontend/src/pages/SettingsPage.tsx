@@ -8,7 +8,7 @@ import { staffApi } from "../services/api";
 import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 import { EmptyState } from "../components/ui/EmptyState";
 import { SkeletonList } from "../components/ui/Skeleton";
-import { DEPARTMENTS, DEPARTMENT_TO_ROLE, ROLE_TO_DEPARTMENT } from "../data/departments";
+import { DEPARTMENTS, DEPARTMENT_TO_ROLE, ROLE_TO_DEPARTMENT, ROLE_LABEL } from "../data/departments";
 import type { Department } from "../data/departments";
 import type { ClinicContext, Bed } from "../components/layout/AppShell";
 
@@ -266,7 +266,7 @@ function BedRow({
   };
 
   return (
-    <li className="px-5 py-3 flex items-center gap-3">
+    <li className="px-5 py-3 flex flex-wrap sm:flex-nowrap items-center gap-3">
       {editing ? (
         <>
           <input
@@ -280,30 +280,34 @@ function BedRow({
             value={draftWard}
             onChange={(e) => setDraftWard(e.target.value)}
             list={`wards-${bed.id}`}
-            className="flex-1 px-2 py-1 border border-slate-300 rounded text-sm"
+            className="flex-1 min-w-[120px] px-2 py-1 border border-slate-300 rounded text-sm"
           />
           <datalist id={`wards-${bed.id}`}>
             {wards.map((w) => <option key={w} value={w} />)}
           </datalist>
-          <button onClick={save} className="text-xs font-semibold text-blue-600 hover:text-blue-700">Save</button>
-          <button onClick={cancel} className="text-xs font-semibold text-slate-500 hover:text-slate-700">Cancel</button>
+          <div className="flex items-center gap-3 ml-auto sm:ml-0">
+            <button onClick={save} className="text-xs font-semibold text-blue-600 hover:text-blue-700">Save</button>
+            <button onClick={cancel} className="text-xs font-semibold text-slate-500 hover:text-slate-700">Cancel</button>
+          </div>
         </>
       ) : (
         <>
-          <span className="font-mono font-semibold text-slate-900 w-12">{bed.bedNumber}</span>
-          <span className="flex-1 text-sm text-slate-600">{bed.ward} ward</span>
-          <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+          <span className="font-mono font-semibold text-slate-900 w-12 flex-shrink-0">{bed.bedNumber}</span>
+          <span className="flex-1 min-w-[80px] text-sm text-slate-600 truncate">{bed.ward} ward</span>
+          <span className={`text-xs font-semibold px-2 py-0.5 rounded-full whitespace-nowrap flex-shrink-0 ${
             bed.status === "AVAILABLE" ? "bg-emerald-100 text-emerald-800" : "bg-rose-100 text-rose-800"
           }`}>
             {bed.status === "AVAILABLE" ? "Free" : "Taken"}
           </span>
-          <button onClick={() => setEditing(true)} className="text-xs font-semibold text-slate-600 hover:text-slate-800">Edit</button>
-          <button
-            onClick={() => setConfirmingRemove(true)}
-            className="text-xs font-semibold text-rose-600 hover:text-rose-700"
-          >
-            Remove
-          </button>
+          <div className="flex items-center gap-3 flex-shrink-0">
+            <button onClick={() => setEditing(true)} className="text-xs font-semibold text-slate-600 hover:text-slate-800">Edit</button>
+            <button
+              onClick={() => setConfirmingRemove(true)}
+              className="text-xs font-semibold text-rose-600 hover:text-rose-700"
+            >
+              Remove
+            </button>
+          </div>
         </>
       )}
 
@@ -327,6 +331,7 @@ function BedRow({
 function StaffSection() {
   const queryClient = useQueryClient();
   const { showToast } = useToast();
+  const { currentUser } = useAuth();
 
   const [showAdd, setShowAdd] = useState(false);
   const [name, setName] = useState("");
@@ -337,6 +342,17 @@ function StaffSection() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
 
+  const handleToggleStatus = async (memberId: string, currentStatus: string) => {
+    const nextStatus = currentStatus === "ACTIVE" ? "SUSPENDED" : "ACTIVE";
+    try {
+      await staffApi.update(memberId, { status: nextStatus });
+      queryClient.invalidateQueries({ queryKey: ["staff"] });
+      showToast(`Staff status updated to ${nextStatus}`);
+    } catch {
+      showToast("Failed to update staff status", "error");
+    }
+  };
+
   // Pending staff member to remove — null means the confirm dialog is closed
   const [pendingRemove, setPendingRemove] = useState<{ id: string; name: string } | null>(null);
 
@@ -346,13 +362,6 @@ function StaffSection() {
   });
 
   const staff = data?.staff ?? [];
-
-  const roleLabel: Record<string, string> = {
-    ADMIN: "Admin",
-    DOCTOR: "Doctor",
-    RECEPTIONIST: "Receptionist",
-    SECURITY_OFFICER: "Security Officer",
-  };
 
   const handleAdd = async () => {
     if (!name.trim() || !email.trim() || !password.trim()) {
@@ -465,7 +474,7 @@ function StaffSection() {
                 ))}
               </select>
               <p className="text-[11px] text-slate-400 mt-1">
-                Maps to account role: {roleLabel[DEPARTMENT_TO_ROLE[department]]}
+                Maps to account role: {ROLE_LABEL[DEPARTMENT_TO_ROLE[department]]}
               </p>
             </div>
           </div>
@@ -503,45 +512,61 @@ function StaffSection() {
           {staff.map((member) => {
             const department = ROLE_TO_DEPARTMENT[member.role] ?? member.role;
             return (
-              <li key={member.id} className="px-5 py-3 flex items-center gap-3">
-                <div
-                  aria-hidden="true"
-                  className="w-9 h-9 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-sm flex-shrink-0"
-                >
-                  {member.name.charAt(0).toUpperCase()}
+              <li key={member.id} className="px-5 py-3 flex flex-col sm:flex-row sm:items-center gap-3">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div
+                    aria-hidden="true"
+                    className="w-9 h-9 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-sm flex-shrink-0"
+                  >
+                    {member.name.charAt(0).toUpperCase()}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-slate-900 truncate">{member.name}</p>
+                    <p className="text-xs text-slate-500 flex items-center gap-1 flex-wrap">
+                      <Phone size={10} className="text-slate-400 flex-shrink-0" />
+                      <span className="truncate">{member.email}</span>
+                      <span className="inline-flex items-center gap-1 text-slate-400 ml-1 whitespace-nowrap">
+                        <ShieldCheck size={10} />
+                        Credentials on file
+                      </span>
+                    </p>
+                  </div>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-slate-900 truncate">{member.name}</p>
-                  <p className="text-xs text-slate-500 flex items-center gap-1 flex-wrap">
-                    <Phone size={10} className="text-slate-400" />
-                    {member.email}
-                    <span className="inline-flex items-center gap-1 text-slate-400 ml-1">
-                      <ShieldCheck size={10} />
-                      Credentials on file
-                    </span>
-                  </p>
-                </div>
-                <div className="flex items-center gap-2 flex-shrink-0">
-                  <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700">
+                <div className="flex items-center gap-2 flex-wrap sm:flex-shrink-0 sm:justify-end pl-12 sm:pl-0">
+                  <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700 whitespace-nowrap">
                     {department}
                   </span>
-                  <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">
-                    {roleLabel[member.role] ?? member.role}
+                  <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 whitespace-nowrap">
+                    {ROLE_LABEL[member.role] ?? member.role}
                   </span>
-                  <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+                  <span className={`text-xs font-semibold px-2 py-0.5 rounded-full whitespace-nowrap ${
                     member.status === "ACTIVE"
                       ? "bg-emerald-100 text-emerald-700"
                       : "bg-rose-100 text-rose-700"
                   }`}>
                     {member.status}
                   </span>
-                  <button
-                    onClick={() => setPendingRemove({ id: member.id, name: member.name })}
-                    aria-label={`Remove ${member.name}`}
-                    className="text-xs font-semibold text-rose-600 hover:text-rose-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-400 rounded"
-                  >
-                    Remove
-                  </button>
+                  {member.id !== currentUser?.id && (
+                    <>
+                      <button
+                        onClick={() => handleToggleStatus(member.id, member.status)}
+                        className={`text-xs font-semibold whitespace-nowrap ${
+                          member.status === "ACTIVE"
+                            ? "text-amber-600 hover:text-amber-700"
+                            : "text-emerald-600 hover:text-emerald-700"
+                        }`}
+                      >
+                        {member.status === "ACTIVE" ? "Suspend" : "Activate"}
+                      </button>
+                      <button
+                        onClick={() => setPendingRemove({ id: member.id, name: member.name })}
+                        aria-label={`Remove ${member.name}`}
+                        className="text-xs font-semibold text-rose-600 hover:text-rose-700 whitespace-nowrap focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-400 rounded"
+                      >
+                        Remove
+                      </button>
+                    </>
+                  )}
                 </div>
               </li>
             );

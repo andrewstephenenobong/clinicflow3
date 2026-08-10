@@ -157,6 +157,12 @@ export const staffApi = {
     request<{ message: string }>(`/api/staff/${staffId}`, {
       method: "DELETE",
     }),
+
+  update: (staffId: string, data: { role?: string; department?: string; status?: "ACTIVE" | "SUSPENDED" }) =>
+    request<{ staff: ApiStaff }>(`/api/staff/${staffId}`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    }),
 };
 
 // ── Clinic ──

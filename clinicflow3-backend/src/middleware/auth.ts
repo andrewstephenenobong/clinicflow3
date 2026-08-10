@@ -1,5 +1,6 @@
 import type { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
+import { prisma } from "../lib/prisma";
 
 // Extend Express Request to carry the decoded user payload
 export interface AuthRequest extends Request {
@@ -10,7 +11,7 @@ export interface AuthRequest extends Request {
   };
 }
 
-export function requireAuth(
+export async function requireAuth(
   req: AuthRequest,
   res: Response,
   next: NextFunction
@@ -29,6 +30,17 @@ export function requireAuth(
       clinicId: string;
       role: string;
     };
+
+    // Check user status in the database to prevent suspended users from making requests
+    const user = await prisma.user.findUnique({
+      where: { id: payload.userId },
+      select: { status: true, deletedAt: true },
+    });
+
+    if (!user || user.status !== "ACTIVE" || user.deletedAt !== null) {
+      res.status(401).json({ error: "Account suspended or deactivated. Contact your clinic admin." });
+      return;
+    }
 
     // Attach to request — controllers read from req.user
     req.user = payload;

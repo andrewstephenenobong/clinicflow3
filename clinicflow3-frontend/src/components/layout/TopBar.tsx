@@ -3,6 +3,7 @@ import { useAuth } from "../../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { GlobalSearch } from "./GlobalSearch";
 import { NotificationCenter } from "./NotificationCenter";
+import { ROLE_LABEL } from "../../data/departments";
 
 interface TopBarProps {
   clinic: Clinic;
@@ -12,18 +13,12 @@ export function TopBar({ clinic }: TopBarProps) {
   const { currentUser, logout } = useAuth();
   const navigate = useNavigate();
 
-  function handleLogout() {
-    logout();
+  async function handleLogout() {
+    await logout();
     navigate("/login", { replace: true });
   }
 
   const avatarLetter = currentUser?.name?.[0]?.toUpperCase() ?? "?";
-
-  const roleLabel: Record<string, string> = {
-    ADMIN: "Admin",
-    DOCTOR: "Doctor",
-    RECEPTIONIST: "Receptionist",
-  };
 
   return (
     <header className="h-14 bg-white border-b border-slate-200 flex items-center gap-4 px-4 md:px-6">
@@ -44,7 +39,7 @@ export function TopBar({ clinic }: TopBarProps) {
             {currentUser?.name ?? "Unknown"}
           </p>
           <p className="text-xs text-slate-500">
-            {currentUser ? roleLabel[currentUser.role] ?? currentUser.role : ""}
+            {currentUser ? ROLE_LABEL[currentUser.role] ?? currentUser.role : ""}
           </p>
         </div>
 

@@ -69,3 +69,15 @@ export const ROLE_TO_DEPARTMENT: Record<string, Department> = {
   RECEPTIONIST: "Reception",
   SECURITY_OFFICER: "Security",
 };
+
+// Single source of truth for how a backend `Role` is displayed. Previously
+// TopBar and SettingsPage each kept their own copy of this map, and the
+// TopBar copy was missing SECURITY_OFFICER — so a signed-in security
+// officer saw the raw enum value ("SECURITY_OFFICER") in the header instead
+// of a friendly label. Both places now import this shared map instead.
+export const ROLE_LABEL: Record<string, string> = {
+  ADMIN: "Admin",
+  DOCTOR: "Doctor",
+  RECEPTIONIST: "Receptionist",
+  SECURITY_OFFICER: "Security Officer",
+};
