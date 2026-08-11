@@ -146,7 +146,8 @@ export function EmergencyPage() {
         <button
           onClick={() => setConfirmOpen(true)}
           className="w-32 h-32 rounded-full text-white font-bold text-lg shadow-lg select-none
-                     transition-colors mx-auto block border-4 bg-red-600 border-red-800 hover:bg-red-700"
+                     transition-all duration-150 mx-auto block border-4 bg-red-600 border-red-800
+                     hover:bg-red-700 hover:scale-105 active:scale-95 animate-pulse-ring"
         >
           SOS
         </button>
@@ -166,9 +167,9 @@ export function EmergencyPage() {
         ) : (
           <ul className="bg-white border border-slate-200 rounded-lg divide-y divide-slate-100 overflow-hidden">
             {history.map((h) => (
-              <li key={h.id} className="px-5 py-3 flex items-center justify-between">
+              <li key={h.id} className="px-5 py-3 flex items-center justify-between animate-slide-up hover:bg-slate-50 transition-colors">
                 <div className="flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-red-500" aria-hidden="true" />
+                  <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" aria-hidden="true" />
                   <p className="text-sm font-medium text-slate-900">Alert sent to {h.department}</p>
                 </div>
                 <p className="text-xs text-slate-500">{h.time}</p>
@@ -188,7 +189,7 @@ export function EmergencyPage() {
             return (
               <div
                 key={section.category}
-                className={`${c.bg} ${c.border} border rounded-xl overflow-hidden`}
+                className={`${c.bg} ${c.border} border rounded-xl overflow-hidden transition-shadow hover:shadow-sm`}
               >
                 <div className={`px-5 py-3 border-b ${c.border} flex items-center gap-2`}>
                   <section.Icon size={15} className={c.icon} />
@@ -208,7 +209,7 @@ export function EmergencyPage() {
                       </div>
                       <a
                         href={`tel:${contact.phone}`}
-                        className={`flex items-center gap-1.5 text-sm font-bold ${c.badgeText} ${c.badge} px-3 py-1.5 rounded-lg hover:opacity-80 transition-opacity`}
+                        className={`flex items-center gap-1.5 text-sm font-bold ${c.badgeText} ${c.badge} px-3 py-1.5 rounded-lg transition-all duration-150 hover:opacity-80 hover:scale-105 active:scale-95`}
                       >
                         <Phone size={13} />
                         {contact.phone}

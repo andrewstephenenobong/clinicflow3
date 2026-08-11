@@ -120,12 +120,13 @@ export function QueuePage() {
     return (
       <li
         key={visit.id}
-        className={`flex items-start gap-4 px-5 py-4 hover:bg-slate-50 transition-colors ${
+        style={{ animationDelay: `${Math.min(index, 8) * 40}ms` }}
+        className={`flex items-start gap-4 px-5 py-4 hover:bg-slate-50 transition-colors animate-slide-up ${
           isEmergency ? "bg-red-50/60 hover:bg-red-50" : ""
         }`}
       >
         <span
-          className={`mt-0.5 w-7 h-7 rounded-full text-sm font-bold flex items-center justify-center flex-shrink-0 ${
+          className={`mt-0.5 w-7 h-7 rounded-full text-sm font-bold flex items-center justify-center flex-shrink-0 transition-transform ${
             isEmergency ? "bg-red-100 text-red-700" : "bg-slate-100 text-slate-600"
           }`}
         >
@@ -157,7 +158,7 @@ export function QueuePage() {
         <button
           onClick={() => callVisit(visit.id)}
           disabled={actionLoading === visit.id}
-          className={`flex-shrink-0 px-3 py-1.5 rounded-md text-xs font-semibold transition-colors ${
+          className={`flex-shrink-0 px-3 py-1.5 rounded-md text-xs font-semibold transition-all duration-150 active:scale-95 hover:shadow-md ${
             isEmergency
               ? "bg-red-600 hover:bg-red-700 disabled:bg-red-400 text-white"
               : "bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white"
@@ -181,7 +182,7 @@ export function QueuePage() {
         </div>
         <button
           onClick={() => setShowCheckIn(true)}
-          className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-semibold shadow-sm"
+          className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-semibold shadow-sm transition-all duration-150 active:scale-95 hover:shadow-md hover:-translate-y-0.5"
         >
           <Plus size={15} />
           Check In Patient
@@ -189,8 +190,8 @@ export function QueuePage() {
       </div>
 
       {waitingToday.filter((v) => v.triage === "EMERGENCY").length > 0 && (
-        <div className="mb-4 bg-red-50 border border-red-300 rounded-lg px-4 py-3 flex items-center gap-3">
-          <AlertTriangle size={18} className="text-red-600 flex-shrink-0" />
+        <div className="mb-4 bg-red-50 border border-red-300 rounded-lg px-4 py-3 flex items-center gap-3 animate-slide-up">
+          <AlertTriangle size={18} className="text-red-600 flex-shrink-0 animate-pulse" />
           <p className="text-sm font-semibold text-red-800">
             {waitingToday.filter((v) => v.triage === "EMERGENCY").length} emergency patient(s) waiting — prioritise immediately
           </p>
@@ -234,7 +235,7 @@ export function QueuePage() {
           </div>
           <ul className="divide-y divide-slate-100">
             {called.map((visit) => (
-              <li key={visit.id} className="flex items-start gap-4 px-5 py-4">
+              <li key={visit.id} className="flex items-start gap-4 px-5 py-4 hover:bg-slate-50 transition-colors animate-slide-up">
                 <div className="flex-1">
                   <div className="flex flex-wrap items-center gap-2">
                     <p className="font-semibold text-slate-900">{visit.patient.name}</p>
@@ -249,7 +250,7 @@ export function QueuePage() {
                 <button
                   onClick={() => markSeen(visit.id)}
                   disabled={actionLoading === visit.id}
-                  className="flex-shrink-0 bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-400 text-white px-3 py-1.5 rounded-md text-xs font-semibold"
+                  className="flex-shrink-0 bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-400 text-white px-3 py-1.5 rounded-md text-xs font-semibold transition-all duration-150 active:scale-95 hover:shadow-md"
                 >
                   {actionLoading === visit.id ? "..." : "Mark Seen"}
                 </button>
@@ -382,11 +383,11 @@ function CheckInDialog({ onClose, onSuccess }: CheckInDialogProps) {
 
   return (
     <div
-      className="fixed inset-0 bg-slate-900/50 flex items-center justify-center z-50 p-4"
+      className="fixed inset-0 bg-slate-900/50 flex items-center justify-center z-50 p-4 animate-fade-in"
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-lg shadow-xl w-full max-w-md"
+        className="bg-white rounded-lg shadow-xl w-full max-w-md animate-scale-in"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="px-6 py-4 border-b border-slate-200">
@@ -443,12 +444,12 @@ function CheckInDialog({ onClose, onSuccess }: CheckInDialogProps) {
               )}
 
               {showDropdown && !isNewPatient && name.trim().length >= 2 && (
-                <div className="absolute z-10 left-0 right-0 mt-1 bg-white border border-slate-200 rounded-md shadow-lg max-h-52 overflow-y-auto">
+                <div className="absolute z-10 left-0 right-0 mt-1 bg-white border border-slate-200 rounded-md shadow-lg max-h-52 overflow-y-auto animate-scale-in origin-top">
                   {searchResults.length > 0 && searchResults.map((p) => (
                     <button
                       key={p.id}
                       onClick={() => selectExisting(p)}
-                      className="w-full flex items-center justify-between px-4 py-3 hover:bg-blue-50 text-left border-b border-slate-100 last:border-0"
+                      className="w-full flex items-center justify-between px-4 py-3 hover:bg-blue-50 text-left border-b border-slate-100 last:border-0 transition-colors"
                     >
                       <div>
                         <p className="text-sm font-semibold text-slate-900">{p.name}</p>

@@ -56,9 +56,9 @@ function PatientCard({ patient, isExpanded, onToggle }: {
     <li className={`border-b border-slate-100 last:border-0 ${isExpanded ? "bg-slate-50/60" : ""}`}>
       <button
         onClick={onToggle}
-        className="w-full flex items-center gap-4 px-5 py-4 hover:bg-slate-50 transition-colors text-left"
+        className="group w-full flex items-center gap-4 px-5 py-4 hover:bg-slate-50 transition-colors text-left"
       >
-        <div className="w-10 h-10 rounded-full bg-blue-100 text-blue-700 font-bold flex items-center justify-center text-sm flex-shrink-0">
+        <div className="w-10 h-10 rounded-full bg-blue-100 text-blue-700 font-bold flex items-center justify-center text-sm flex-shrink-0 transition-transform duration-200 group-hover:scale-105">
           {initial}
         </div>
 
@@ -74,13 +74,19 @@ function PatientCard({ patient, isExpanded, onToggle }: {
           </p>
         </div>
 
-        <span className="text-slate-400 text-lg flex-shrink-0">
-          {isExpanded ? "▾" : "▸"}
+        <span
+          className={`text-slate-400 text-lg flex-shrink-0 inline-block transition-transform duration-200 ${
+            isExpanded ? "rotate-90" : "rotate-0"
+          }`}
+        >
+          ▸
         </span>
       </button>
 
       {isExpanded && (
-        <VisitHistory patientId={patient.id} />
+        <div className="animate-slide-up">
+          <VisitHistory patientId={patient.id} />
+        </div>
       )}
     </li>
   );

@@ -43,7 +43,7 @@ function StatCard({
   Icon?: LucideIcon;
 }) {
   return (
-    <div className="bg-white border border-slate-200 rounded-xl p-5 flex items-start gap-4">
+    <div className="bg-white border border-slate-200 rounded-xl p-5 flex items-start gap-4 transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 hover:border-slate-300">
       {Icon && (
         <Icon size={22} className={`mt-0.5 flex-shrink-0 ${color}`} />
       )}
@@ -51,7 +51,7 @@ function StatCard({
         <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">
           {label}
         </p>
-        <p className={`text-3xl font-bold ${color}`}>{value}</p>
+        <p className={`text-3xl font-bold ${color} tabular-nums`}>{value}</p>
         {sub && <p className="text-xs text-slate-400 mt-1">{sub}</p>}
       </div>
     </div>
@@ -74,11 +74,11 @@ function QuickActionCard({
   return (
     <Link
       to={to}
-      className={`bg-white border rounded-xl p-5 hover:shadow-md transition-all group ${
+      className={`bg-white border rounded-xl p-5 hover:shadow-lg transition-all duration-200 hover:-translate-y-1 active:scale-[0.98] group ${
         accent ?? "border-slate-200 hover:border-blue-300"
       }`}
     >
-      <Icon size={20} className="text-slate-500 group-hover:text-blue-600 transition-colors" />
+      <Icon size={20} className="text-slate-500 group-hover:text-blue-600 transition-all duration-200 group-hover:scale-110" />
       <p className="font-semibold text-slate-900 mt-2 group-hover:text-blue-700 transition-colors">
         {title}
       </p>
@@ -142,7 +142,7 @@ export function DashboardPage() {
         actions={
           <Link
             to="/queue"
-            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-semibold shadow-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
+            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-semibold shadow-sm transition-all duration-150 active:scale-95 hover:shadow-md hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
           >
             <ListOrdered size={15} />
             View Queue
@@ -151,8 +151,8 @@ export function DashboardPage() {
       />
 
       {emergencyNow > 0 && (
-        <div className="bg-red-50 border-2 border-red-400 rounded-xl px-5 py-4 flex items-center gap-4">
-          <AlertTriangle size={24} className="text-red-600 flex-shrink-0" />
+        <div className="bg-red-50 border-2 border-red-400 rounded-xl px-5 py-4 flex items-center gap-4 animate-slide-up">
+          <AlertTriangle size={24} className="text-red-600 flex-shrink-0 animate-pulse" />
           <div>
             <p className="font-bold text-red-800 text-lg">
               {emergencyNow} Emergency {emergencyNow === 1 ? "Patient" : "Patients"} Waiting
@@ -163,7 +163,7 @@ export function DashboardPage() {
           </div>
           <Link
             to="/queue"
-            className="ml-auto bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-semibold flex-shrink-0"
+            className="ml-auto bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-semibold flex-shrink-0 transition-all duration-150 active:scale-95 hover:shadow-md"
           >
             Go to Queue
           </Link>
@@ -174,7 +174,7 @@ export function DashboardPage() {
         <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">
           Today's Operations
         </h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 [&>*]:animate-slide-up [&>*:nth-child(1)]:[animation-delay:0ms] [&>*:nth-child(2)]:[animation-delay:60ms] [&>*:nth-child(3)]:[animation-delay:120ms] [&>*:nth-child(4)]:[animation-delay:180ms]">
           <StatCard
             label="Checked In"
             value={stats?.patientsCheckedInToday ?? 0}
@@ -235,8 +235,8 @@ export function DashboardPage() {
                 return (
                   <li
                     key={v.id}
-                    className={`px-5 py-3 flex items-center justify-between ${
-                      v.triage === "EMERGENCY" ? "bg-red-50/60" : ""
+                    className={`px-5 py-3 flex items-center justify-between transition-colors hover:bg-slate-50 ${
+                      v.triage === "EMERGENCY" ? "bg-red-50/60 hover:bg-red-50" : ""
                     }`}
                   >
                     <div>

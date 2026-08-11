@@ -8,6 +8,7 @@ interface Toast {
   id: string;
   message: string;
   type: ToastType;
+  leaving: boolean;
 }
 
 interface ToastContextType {
@@ -16,45 +17,63 @@ interface ToastContextType {
 
 const ToastContext = createContext<ToastContextType | null>(null);
 
+// How long the exit animation takes — must match the "slide-out" keyframe
+// duration in tailwind.config.js so the toast unmounts right as it fades out.
+const EXIT_ANIMATION_MS = 180;
+
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
 
-  const showToast = useCallback((message: string, type: ToastType = "success") => {
-    const id = `toast-${Date.now()}`;
-    setToasts((current) => [...current, { id, message, type }]);
-
+  const dismiss = useCallback((id: string) => {
+    // Mark as leaving first so it plays the exit animation, then remove
+    // it from state once the animation has actually finished.
+    setToasts((current) => current.map((t) => (t.id === id ? { ...t, leaving: true } : t)));
     setTimeout(() => {
       setToasts((current) => current.filter((t) => t.id !== id));
-    }, 3500);
+    }, EXIT_ANIMATION_MS);
   }, []);
+
+  const showToast = useCallback((message: string, type: ToastType = "success") => {
+    const id = `toast-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    setToasts((current) => [...current, { id, message, type, leaving: false }]);
+
+    setTimeout(() => dismiss(id), 3500);
+  }, [dismiss]);
+
+  const styles: Record<ToastType, { bg: string; icon: ReactNode; iconBg: string }> = {
+    success: { bg: "bg-emerald-600", iconBg: "bg-emerald-500/40", icon: <CheckCircle2 size={16} /> },
+    error:   { bg: "bg-red-600",     iconBg: "bg-red-500/40",     icon: <XCircle size={16} /> },
+    info:    { bg: "bg-blue-600",    iconBg: "bg-blue-500/40",    icon: <Info size={16} /> },
+  };
 
   return (
     <ToastContext.Provider value={{ showToast }}>
       {children}
 
       <div className="fixed bottom-6 right-6 z-50 flex flex-col gap-2 pointer-events-none">
-        {toasts.map((toast) => (
-          <div
-            key={toast.id}
-            className={`
-              flex items-center gap-2
-              px-4 py-3 rounded-lg shadow-lg text-sm font-medium
-              pointer-events-auto max-w-sm
-              animate-slide-in
-              ${toast.type === "success"
-                ? "bg-emerald-600 text-white"
-                : toast.type === "error"
-                ? "bg-red-600 text-white"
-                : "bg-blue-600 text-white"
-              }
-            `}
-          >
-            {toast.type === "success" && <CheckCircle2 size={16} className="flex-shrink-0" />}
-            {toast.type === "error"   && <XCircle      size={16} className="flex-shrink-0" />}
-            {toast.type === "info"    && <Info         size={16} className="flex-shrink-0" />}
-            {toast.message}
-          </div>
-        ))}
+        {toasts.map((toast) => {
+          const s = styles[toast.type];
+          return (
+            <div
+              key={toast.id}
+              role="status"
+              onClick={() => dismiss(toast.id)}
+              className={`
+                flex items-center gap-2.5
+                pl-3 pr-4 py-3 rounded-lg shadow-lg hover:shadow-xl text-sm font-medium text-white
+                pointer-events-auto max-w-sm cursor-pointer
+                transition-shadow duration-150
+                ${toast.leaving ? "animate-slide-out" : "animate-slide-in"}
+                ${s.bg}
+              `}
+            >
+              <span className={`flex items-center justify-center w-6 h-6 rounded-full flex-shrink-0 animate-pop-in ${s.iconBg}`}>
+                {s.icon}
+              </span>
+              {toast.message}
+            </div>
+          );
+        })}
       </div>
     </ToastContext.Provider>
   );

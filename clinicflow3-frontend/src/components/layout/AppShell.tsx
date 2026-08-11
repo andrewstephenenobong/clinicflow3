@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Outlet } from "react-router-dom";
+import { Outlet, useLocation } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { NavLink } from "react-router-dom";
 import {
@@ -98,12 +98,12 @@ function BottomNav() {
             key={item.to}
             to={item.to}
             className={({ isActive }) =>
-              `flex-1 flex flex-col items-center justify-center py-2 text-xs font-medium transition-colors ${
-                isActive ? "text-blue-600" : "text-slate-500"
+              `flex-1 flex flex-col items-center justify-center py-2 text-xs font-medium transition-all duration-150 active:scale-90 ${
+                isActive ? "text-blue-600 -translate-y-0.5" : "text-slate-500"
               }`
             }
           >
-            <item.Icon size={18} className="mb-0.5" />
+            <item.Icon size={18} className="mb-0.5 transition-transform duration-150" />
             <span>{item.label}</span>
           </NavLink>
         ))}
@@ -115,6 +115,7 @@ function BottomNav() {
 export function AppShell() {
   const { currentClinic, setClinic } = useAuth();
   const queryClient = useQueryClient();
+  const location = useLocation();
 
   const clinic: Clinic = {
     id: currentClinic?.id ?? "",
@@ -203,7 +204,10 @@ export function AppShell() {
       <div className="flex-1 flex flex-col min-w-0">
         <TopBar clinic={clinic} />
         <main className="flex-1 p-4 md:p-6 overflow-auto pb-20 md:pb-6">
-          <Outlet context={ctx} />
+          {/* Keying on the pathname re-triggers the fade/slide-up animation on every navigation */}
+          <div key={location.pathname} className="animate-fade-in">
+            <Outlet context={ctx} />
+          </div>
         </main>
       </div>
 

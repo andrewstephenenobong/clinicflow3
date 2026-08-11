@@ -154,7 +154,7 @@ export function GlobalSearch() {
       )}
 
       {open && hasQuery && (
-        <div className="absolute z-30 left-0 right-0 mt-1.5 bg-white border border-slate-200 rounded-lg shadow-lg max-h-96 overflow-y-auto">
+        <div className="absolute z-30 left-0 right-0 mt-1.5 bg-white border border-slate-200 rounded-lg shadow-lg max-h-96 overflow-y-auto animate-scale-in origin-top">
           {isSearching ? (
             <p className="text-xs text-slate-400 text-center py-6">Searching…</p>
           ) : visibleGroups.length === 0 ? (

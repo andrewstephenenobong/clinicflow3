@@ -30,24 +30,24 @@ export function NotificationCenter() {
         onClick={() => setOpen((v) => !v)}
         aria-label={`Notifications${unreadCount > 0 ? `, ${unreadCount} unread` : ""}`}
         aria-expanded={open}
-        className="relative w-8 h-8 flex items-center justify-center rounded-full text-slate-500 hover:bg-slate-100 hover:text-slate-700 transition-colors"
+        className="relative w-8 h-8 flex items-center justify-center rounded-full text-slate-500 hover:bg-slate-100 hover:text-slate-700 transition-all duration-150 active:scale-90"
       >
-        <Bell size={16} />
+        <Bell size={16} className={unreadCount > 0 ? "animate-wiggle" : ""} />
         {unreadCount > 0 && (
-          <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-red-600 text-white text-[10px] font-bold flex items-center justify-center">
+          <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-red-600 text-white text-[10px] font-bold flex items-center justify-center animate-pop-in">
             {unreadCount}
           </span>
         )}
       </button>
 
       {open && (
-        <div className="absolute right-0 z-30 mt-2 w-80 bg-white border border-slate-200 rounded-lg shadow-lg max-h-[26rem] overflow-y-auto">
+        <div className="absolute right-0 z-30 mt-2 w-80 bg-white border border-slate-200 rounded-lg shadow-lg max-h-[26rem] overflow-y-auto animate-scale-in origin-top-right">
           <div className="px-4 py-3 border-b border-slate-200 bg-slate-50 flex items-center justify-between sticky top-0">
             <p className="text-sm font-semibold text-slate-800">Notifications</p>
             {unreadCount > 0 && (
               <button
                 onClick={() => setItems((cur) => cur.map((n) => ({ ...n, read: true })))}
-                className="text-xs font-semibold text-blue-600 hover:text-blue-700"
+                className="text-xs font-semibold text-blue-600 hover:text-blue-700 transition-transform active:scale-95"
               >
                 Mark all read
               </button>
@@ -58,10 +58,10 @@ export function NotificationCenter() {
             <p className="text-xs text-slate-400 text-center py-8">No notifications yet.</p>
           ) : (
             <ul className="divide-y divide-slate-100">
-              {items.map((n) => {
+              {items.map((n, i) => {
                 const meta = CHANNEL_META[n.channel];
                 return (
-                  <li key={n.id}>
+                  <li key={n.id} className="animate-slide-up" style={{ animationDelay: `${Math.min(i, 6) * 30}ms` }}>
                     <button
                       onClick={() => setItems((cur) => cur.map((x) => (x.id === n.id ? { ...x, read: true } : x)))}
                       className={`w-full text-left px-4 py-3 flex items-start gap-3 hover:bg-slate-50 transition-colors ${
@@ -74,7 +74,7 @@ export function NotificationCenter() {
                       <span className="flex-1 min-w-0">
                         <span className="flex items-center gap-1.5">
                           <span className="text-sm font-medium text-slate-900 truncate">{n.title}</span>
-                          {!n.read && <span className="w-1.5 h-1.5 rounded-full bg-blue-600 flex-shrink-0" />}
+                          {!n.read && <span className="w-1.5 h-1.5 rounded-full bg-blue-600 flex-shrink-0 animate-pulse" />}
                         </span>
                         <span className="block text-xs text-slate-500 mt-0.5">{n.detail}</span>
                         <span className="block text-[11px] text-slate-400 mt-1">{n.time} · {meta.label}</span>

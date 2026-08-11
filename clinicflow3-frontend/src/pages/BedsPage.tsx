@@ -169,11 +169,11 @@ function AssignDialog({ bed, onClose, onAssign }: AssignDialogProps) {
 
   return (
     <div
-      className="fixed inset-0 bg-slate-900/50 flex items-center justify-center z-50 p-4"
+      className="fixed inset-0 bg-slate-900/50 flex items-center justify-center z-50 p-4 animate-fade-in"
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-lg shadow-xl w-full max-w-md"
+        className="bg-white rounded-lg shadow-xl w-full max-w-md animate-scale-in"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="px-6 py-4 border-b border-slate-200">
@@ -267,11 +267,11 @@ function DischargeDialog({ bed, onClose, onDischarge }: DischargeDialogProps) {
 
   return (
     <div
-      className="fixed inset-0 bg-slate-900/50 flex items-center justify-center z-50 p-4"
+      className="fixed inset-0 bg-slate-900/50 flex items-center justify-center z-50 p-4 animate-fade-in"
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-lg shadow-xl w-full max-w-md"
+        className="bg-white rounded-lg shadow-xl w-full max-w-md animate-scale-in"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="px-6 py-4 border-b border-slate-200">

@@ -45,7 +45,7 @@ export function Sidebar() {
   return (
     <aside className="w-60 bg-white border-r border-slate-200 flex flex-col h-screen sticky top-0">
       <div className="px-6 py-5 border-b border-slate-200">
-        <h1 className="text-xl font-bold text-blue-600">ClinicFlow</h1>
+        <h1 className="text-xl font-bold text-blue-600 transition-transform duration-200 hover:translate-x-0.5">ClinicFlow</h1>
         <p className="text-xs text-slate-500 mt-0.5">by Andrew Cares</p>
       </div>
 
@@ -63,17 +63,17 @@ export function Sidebar() {
                     key={item.to}
                     to={item.to}
                     className={({ isActive }: { isActive: boolean }) =>
-                      `flex items-center gap-2.5 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                      `group flex items-center gap-2.5 px-3 py-2 rounded-md text-sm font-medium transition-all duration-150 ${
                         isActive
-                          ? "bg-blue-50 text-blue-700"
-                          : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                          ? "bg-blue-50 text-blue-700 translate-x-0.5"
+                          : "text-slate-600 hover:bg-slate-50 hover:text-slate-900 hover:translate-x-0.5"
                       }`
                     }
                   >
-                    <item.Icon size={15} className="flex-shrink-0" />
+                    <item.Icon size={15} className="flex-shrink-0 transition-transform duration-150 group-hover:scale-110" />
                     <span>{item.label}</span>
                     {item.to === "/emergency" && (
-                      <span className="ml-auto text-xs font-bold text-red-600 bg-red-50 border border-red-200 px-1.5 py-0.5 rounded">
+                      <span className="ml-auto text-xs font-bold text-red-600 bg-red-50 border border-red-200 px-1.5 py-0.5 rounded animate-pulse">
                         SOS
                       </span>
                     )}

@@ -188,18 +188,18 @@ function PatientPanel({
 
   return (
     <div
-      className="fixed inset-0 bg-slate-900/50 flex justify-end z-50"
+      className="fixed inset-0 bg-slate-900/50 flex justify-end z-50 animate-fade-in"
       onClick={onClose}
     >
       <div
-        className="bg-white w-full max-w-md h-full overflow-y-auto shadow-xl"
+        className="bg-white w-full max-w-md h-full overflow-y-auto shadow-xl animate-slide-in-right"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between sticky top-0 bg-white z-10">
           <h2 className="text-lg font-semibold text-slate-900">Patient record</h2>
           <button
             onClick={onClose}
-            className="text-slate-400 hover:text-slate-700 text-xl leading-none"
+            className="text-slate-400 hover:text-slate-700 text-xl leading-none transition-transform hover:scale-110 hover:rotate-90 duration-200"
           >
             ×
           </button>
