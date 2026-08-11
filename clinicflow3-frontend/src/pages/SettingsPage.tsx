@@ -628,7 +628,7 @@ function AboutSection() {
       <h2 className="text-sm font-semibold text-slate-700 uppercase tracking-wide mb-3">About</h2>
       <div className="space-y-1 text-sm">
         <p className="text-slate-700">
-          <span className="font-semibold">ClinicFlow</span> · v1.0
+          <span className="font-semibold">CliniTrax</span> · v1.0
         </p>
         <p className="text-slate-500">Hospital & clinic management, built for Nigeria.</p>
         <p className="text-slate-500 mt-3 italic">

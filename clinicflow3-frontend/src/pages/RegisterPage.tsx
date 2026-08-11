@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Eye, EyeOff, AlertCircle, Lock, Mail, Activity, ShieldCheck, Clock, User, Building } from "lucide-react";
+import { Eye, EyeOff, AlertCircle, Lock, Mail, ShieldCheck, Clock, User, Building } from "lucide-react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { authApi } from "../services/api";
@@ -74,17 +74,17 @@ export function RegisterPage() {
         
         {/* Brand header */}
         <div className="flex items-center space-x-3 z-10">
-          <div className="bg-white/10 p-2.5 rounded-xl backdrop-blur-md border border-white/20">
-            <Activity className="h-6 w-6 text-white" />
+          <div className="bg-white/10 p-1.5 rounded-xl backdrop-blur-md border border-white/20">
+            <img src="/brand/logo-mark-white.png" alt="" className="h-8 w-8" />
           </div>
-          <span className="text-xl font-bold tracking-tight">ClinicFlow</span>
+          <span className="text-xl font-bold tracking-tight">CliniTrax</span>
         </div>
 
         {/* Hero message / info */}
         <div className="my-auto space-y-8 z-10 max-w-md">
           <div className="space-y-4">
             <h1 className="text-4xl font-extrabold tracking-tight leading-tight">
-              Get started with ClinicFlow in minutes.
+              Get started with CliniTrax in minutes.
             </h1>
             <p className="text-blue-100 text-base leading-relaxed">
               Create an administrative account for your clinic, add your ward configuration, and invite your clinical staff immediately.
@@ -129,10 +129,8 @@ export function RegisterPage() {
         {/* Mobile Header (Hidden on large screens) */}
         <div className="flex items-center justify-center lg:hidden mb-8">
           <div className="flex items-center space-x-2.5">
-            <div className="bg-blue-600 p-2 rounded-xl text-white">
-              <Activity className="h-5 w-5" />
-            </div>
-            <span className="text-xl font-bold tracking-tight text-slate-900">ClinicFlow</span>
+            <img src="/brand/logo-mark.png" alt="" className="h-9 w-9" />
+            <span className="text-xl font-bold tracking-tight text-slate-900">CliniTrax</span>
           </div>
         </div>
 
@@ -338,7 +336,7 @@ export function RegisterPage() {
         {/* Footer info */}
         <div className="text-center mt-8">
           <p className="text-xs text-slate-400 font-medium">
-            ClinicFlow v1.0 — Dedicated to healthcare efficiency and patient flow.
+            CliniTrax v1.0 — Dedicated to healthcare efficiency and patient flow.
           </p>
         </div>
       </div>

@@ -44,9 +44,16 @@ export function Sidebar() {
 
   return (
     <aside className="w-60 bg-white border-r border-slate-200 flex flex-col h-screen sticky top-0">
-      <div className="px-6 py-5 border-b border-slate-200">
-        <h1 className="text-xl font-bold text-blue-600 transition-transform duration-200 hover:translate-x-0.5">ClinicFlow</h1>
-        <p className="text-xs text-slate-500 mt-0.5">by Andrew Cares</p>
+      <div className="px-6 py-5 border-b border-slate-200 flex items-center gap-2.5">
+        <img
+          src="/brand/logo-mark.png"
+          alt=""
+          className="w-8 h-8 flex-shrink-0 transition-transform duration-200 hover:scale-110"
+        />
+        <div>
+          <h1 className="text-xl font-bold text-blue-600 leading-tight">CliniTrax</h1>
+          <p className="text-xs text-slate-500 leading-tight">by Andrew Cares</p>
+        </div>
       </div>
 
       <nav className="flex-1 px-3 py-4 overflow-y-auto">

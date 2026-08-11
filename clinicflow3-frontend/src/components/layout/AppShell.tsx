@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Outlet, useLocation } from "react-router-dom";
+import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { NavLink } from "react-router-dom";
 import {
@@ -9,6 +9,14 @@ import {
   BedDouble,
   AlertTriangle,
   Settings,
+  ClipboardList,
+  MessageSquare,
+  Stethoscope,
+  FileText,
+  HelpCircle,
+  MoreHorizontal,
+  X,
+  LogOut,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { Sidebar } from "./Sidebar";
@@ -77,38 +85,140 @@ interface BottomNavItem {
   Icon: LucideIcon;
 }
 
-function BottomNav() {
+// The 4 tabs people reach for constantly, kept one tap away.
+// Everything else (Dashboard for admins, Admitted, Chat, Portal, Consent,
+// Support, Settings) lives behind "More" so the bar doesn't get crowded.
+const PRIMARY_NAV_ITEMS: BottomNavItem[] = [
+  { to: "/queue",     label: "Queue",    Icon: ListOrdered   },
+  { to: "/patients",  label: "Patients", Icon: Users         },
+  { to: "/beds",       label: "Beds",     Icon: BedDouble     },
+  { to: "/emergency", label: "SOS",      Icon: AlertTriangle },
+];
+
+function useMoreNavItems() {
   const { currentUser } = useAuth();
   const isAdmin = currentUser?.role === "ADMIN";
 
   const items: BottomNavItem[] = [
     ...(isAdmin ? [{ to: "/dashboard", label: "Dashboard", Icon: LayoutDashboard }] : []),
-    { to: "/queue",     label: "Queue",    Icon: ListOrdered  },
-    { to: "/patients",  label: "Patients", Icon: Users        },
-    { to: "/beds",      label: "Beds",     Icon: BedDouble    },
-    { to: "/emergency", label: "SOS",      Icon: AlertTriangle },
-    { to: "/settings",  label: "Settings", Icon: Settings     },
+    { to: "/admitted", label: "Admitted",             Icon: ClipboardList },
+    { to: "/chat",     label: "Doctor–Patient Chat",  Icon: MessageSquare },
+    { to: "/portal",   label: "Patient Portal",       Icon: Stethoscope   },
+    { to: "/consent",  label: "Consent Forms",        Icon: FileText      },
+    { to: "/support",  label: "Help & Support",       Icon: HelpCircle    },
+    { to: "/settings", label: "Settings",             Icon: Settings      },
   ];
 
+  return items;
+}
+
+function MoreSheet({ onClose }: { onClose: () => void }) {
+  const items = useMoreNavItems();
+  const { logout } = useAuth();
+  const navigate = useNavigate();
+
+  async function handleSignOut() {
+    onClose();
+    await logout();
+    navigate("/login", { replace: true });
+  }
+
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 z-40 md:hidden">
-      <div className="flex">
-        {items.map((item) => (
-          <NavLink
-            key={item.to}
-            to={item.to}
-            className={({ isActive }) =>
-              `flex-1 flex flex-col items-center justify-center py-2 text-xs font-medium transition-all duration-150 active:scale-90 ${
-                isActive ? "text-blue-600 -translate-y-0.5" : "text-slate-500"
-              }`
-            }
+    <div
+      className="fixed inset-0 bg-slate-900/50 z-50 flex items-end animate-fade-in md:hidden"
+      onClick={onClose}
+    >
+      <div
+        className="bg-white w-full rounded-t-2xl shadow-xl pb-[env(safe-area-inset-bottom)] animate-slide-up max-h-[80vh] overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="sticky top-0 bg-white px-5 pt-4 pb-3 border-b border-slate-100 flex items-center justify-between">
+          <div className="mx-auto w-10 h-1 rounded-full bg-slate-200 absolute left-1/2 -translate-x-1/2 top-2" />
+          <h2 className="text-sm font-semibold text-slate-700">More</h2>
+          <button
+            onClick={onClose}
+            aria-label="Close"
+            className="text-slate-400 hover:text-slate-700 transition-transform hover:scale-110 hover:rotate-90 duration-200"
           >
-            <item.Icon size={18} className="mb-0.5 transition-transform duration-150" />
-            <span>{item.label}</span>
-          </NavLink>
-        ))}
+            <X size={18} />
+          </button>
+        </div>
+
+        <div className="grid grid-cols-3 gap-3 p-5">
+          {items.map((item, i) => (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              onClick={onClose}
+              style={{ animationDelay: `${i * 30}ms` }}
+              className={({ isActive }) =>
+                `animate-slide-up flex flex-col items-center justify-center gap-1.5 rounded-xl border py-4 px-2 text-center transition-all duration-150 active:scale-95 ${
+                  isActive
+                    ? "border-blue-300 bg-blue-50 text-blue-700"
+                    : "border-slate-200 text-slate-600 hover:bg-slate-50"
+                }`
+              }
+            >
+              <item.Icon size={20} />
+              <span className="text-[11px] font-medium leading-tight">{item.label}</span>
+            </NavLink>
+          ))}
+        </div>
+
+        <button
+          onClick={handleSignOut}
+          className="w-full flex items-center justify-center gap-2 px-5 py-4 border-t border-slate-100 text-sm font-semibold text-red-600 hover:bg-red-50 transition-colors"
+        >
+          <LogOut size={15} />
+          Sign out
+        </button>
       </div>
-    </nav>
+    </div>
+  );
+}
+
+function BottomNav() {
+  const location = useLocation();
+  const [moreOpen, setMoreOpen] = useState(false);
+  const moreItems = useMoreNavItems();
+
+  // Highlight "More" itself when the active route lives inside it, so the
+  // person can tell where they are even though that page isn't a primary tab.
+  const isInsideMore = moreItems.some((item) => location.pathname.startsWith(item.to));
+
+  return (
+    <>
+      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 z-40 md:hidden">
+        <div className="flex">
+          {PRIMARY_NAV_ITEMS.map((item) => (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              className={({ isActive }) =>
+                `flex-1 flex flex-col items-center justify-center py-2 text-xs font-medium transition-all duration-150 active:scale-90 ${
+                  isActive ? "text-blue-600 -translate-y-0.5" : "text-slate-500"
+                }`
+              }
+            >
+              <item.Icon size={18} className="mb-0.5 transition-transform duration-150" />
+              <span>{item.label}</span>
+            </NavLink>
+          ))}
+
+          <button
+            onClick={() => setMoreOpen(true)}
+            className={`flex-1 flex flex-col items-center justify-center py-2 text-xs font-medium transition-all duration-150 active:scale-90 ${
+              isInsideMore ? "text-blue-600 -translate-y-0.5" : "text-slate-500"
+            }`}
+          >
+            <MoreHorizontal size={18} className="mb-0.5 transition-transform duration-150" />
+            <span>More</span>
+          </button>
+        </div>
+      </nav>
+
+      {moreOpen && <MoreSheet onClose={() => setMoreOpen(false)} />}
+    </>
   );
 }
 

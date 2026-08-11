@@ -15,7 +15,7 @@ export function WelcomeBanner() {
       <div className="flex items-start justify-between">
         <div>
           <h2 className="text-lg font-semibold text-blue-900">
-            Welcome to ClinicFlow, {currentClinic?.name}
+            Welcome to CliniTrax, {currentClinic?.name}
           </h2>
           <p className="text-sm text-blue-700 mt-1">
             You're all set. Here's how to get started in 3 steps.

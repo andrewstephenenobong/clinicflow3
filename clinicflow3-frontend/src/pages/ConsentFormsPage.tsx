@@ -162,7 +162,7 @@ function FormPrintView({ form, onBack }: { form: ConsentForm; onBack: () => void
       <div className="bg-white border border-slate-200 rounded-xl p-8 space-y-6 print:border-0 print:p-0 print:shadow-none">
         <div className="text-center border-b border-slate-200 pb-6">
           <p className="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-2">
-            ClinicFlow Medical Centre
+            CliniTrax Medical Centre
           </p>
           <h2 className="text-2xl font-bold text-slate-900">{form.title}</h2>
           <p className="text-sm text-slate-500 mt-1">{form.subtitle}</p>
@@ -205,7 +205,7 @@ function FormPrintView({ form, onBack }: { form: ConsentForm; onBack: () => void
         </div>
 
         <p className="text-center text-xs text-slate-400 border-t border-slate-100 pt-4">
-          ClinicFlow · Built for Nigerian healthcare · © {new Date().getFullYear()}
+          CliniTrax · Built for Nigerian healthcare · © {new Date().getFullYear()}
         </p>
       </div>
     </div>
